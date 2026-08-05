@@ -1,0 +1,4019 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Rework Webstore</title>
+
+    <!-- WinJS from CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/winjs/4.4.3/css/ui-light.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/winjs/4.4.3/js/base.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/winjs/4.4.3/js/ui.js">
+    </script>
+
+    <style>
+        /* ===== GLOBAL RESET & BASE ===== */
+        * {
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', 'Segoe UI Web', 'Helvetica Neue', sans-serif;
+            background-color: #f2f2f2;
+            color: #000;
+            overflow: hidden;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        a,
+        a:visited,
+        a:active,
+        a:focus {
+            text-decoration: none;
+            color: inherit !important;
+            outline: none !important;
+        }
+        button {
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .win-backbutton {
+            border-radius: 50%;
+            background: transparent;
+            border: 2px solid #000;
+            color: #000;
+            width: 28px;
+            height: 28px;
+            font-size: 16px;
+            line-height: 24px;
+            text-align: center;
+            padding: 0;
+            margin-right: 20px;
+            flex-shrink: 0;
+            cursor: pointer;
+            background-clip: border-box;
+        }
+        .win-backbutton:hover {
+            background: rgba(0, 0, 0, 0.13);
+        }
+        .win-backbutton:active {
+            background: #000;
+            color: #fff;
+        }
+        .win-backbutton::before {
+            content: "◀";
+            font-family: 'Segoe UI Symbol', sans-serif;
+            font-weight: normal;
+        }
+        .win-backbutton.flipButton::before {
+            content: "▶";
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 0;
+            background: transparent;
+        }
+
+        /* ===== TOP BAR ===== */
+        #topBarContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: #008a00;
+            color: #fff;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: transform 0.35s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+        #topBarContainer.topbar-hidden {
+            transform: translateY(-100%);
+        }
+        #topBarContainer ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex: 1;
+        }
+        #topBarContainer .logo-home-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 18px;
+            color: #fff;
+            cursor: pointer;
+        }
+        #topBarContainer .logo-home-container img {
+            height: 32px;
+            width: 32px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        #topBarContainer .nav-link {
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 3px;
+            transition: background 0.15s;
+        }
+        #topBarContainer .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        #topBarContainer .search-container {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #fff;
+            padding: 0 10px;
+            height: 30px;
+            border-radius: 4px;
+            flex: 0 1 280px;
+            min-width: 140px;
+        }
+        #topBarContainer .search-container #searchBar {
+            flex: 1;
+            border: none !important;
+            background: transparent !important;
+            color: #333;
+            font-size: 14px;
+            padding: 0;
+            outline: none;
+            height: 100%;
+        }
+        #topBarContainer .search-container .search-icon {
+            color: #008a00;
+            font-size: 16px;
+            margin-left: 6px;
+            cursor: default;
+            font-family: 'Segoe UI Symbol', sans-serif;
+        }
+        #topBarContainer .right-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
+        #topBarContainer .right-actions .nav-link {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* ===== PAGE CONTAINER ===== */
+        #pageContainer {
+            margin-top: 56px;
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px 30px 60px 30px;
+            transition: background 0.3s ease, color 0.3s ease;
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+        }
+        #pageContainer .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        #pageContainer .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes win8Entrance {
+            0% {
+                opacity: 0;
+                transform: translateX(60px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .win8-anim {
+            animation: win8Entrance 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+        }
+
+        /* ===== HEADER ===== */
+        .page-header {
+            display: flex;
+            align-items: baseline;
+            margin: 12px 0 24px 0;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .page-header h1 {
+            font-size: 38px;
+            font-weight: 300;
+            margin: 0;
+            color: #000;
+        }
+        .page-header .sub-count {
+            font-size: 18px;
+            color: #999;
+            font-weight: 300;
+        }
+        .page-header .back-wrap {
+            display: flex;
+            align-items: center;
+        }
+
+        /* ===== HOME PAGE ===== */
+        .home-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        .home-col {
+            flex: 1 1 300px;
+            min-width: 240px;
+        }
+        .home-col h2 {
+            font-weight: 300;
+            font-size: 22px;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+        .home-col h2 .see-all {
+            font-size: 14px;
+            color: #008a00 !important;
+            cursor: pointer;
+            font-weight: 400;
+        }
+        .home-col h2 .see-all:hover {
+            text-decoration: underline;
+        }
+
+        /* Spotlight */
+        .spotlight-wrap {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .spotlight-thumbs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .spotlight-thumbs img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .spotlight-thumbs img.active-thumb {
+            border-color: #008a00;
+        }
+        .spotlight-main {
+            flex: 1;
+            min-width: 280px;
+            cursor: pointer;
+        }
+        .spotlight-main img {
+            width: 100%;
+            max-width: 500px;
+            height: 260px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #ddd;
+        }
+        .spotlight-main .spot-title {
+            font-size: 20px;
+            font-weight: 400;
+            display: block;
+            margin-top: 6px;
+            color: #228B22;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .spotlight-main .spot-desc {
+            font-size: 14px;
+            color: #555;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .spotlight-main .spot-meta {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .spotlight-main .spot-stars {
+            color: #f5a623;
+            letter-spacing: 1px;
+        }
+
+        /* App tiles */
+        .app-tile-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+        }
+        .app-tile-item {
+            width: 140px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .app-tile-item:active {
+            transform: scale(0.96);
+        }
+        .app-tile-item .tile-img {
+            width: 140px;
+            height: 140px;
+            background: #0078D7;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .app-tile-item .tile-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .app-tile-item .tile-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 6px;
+            color: #444;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .app-tile-item .tile-price {
+            font-size: 12px;
+            color: #666;
+        }
+        .app-tile-item .tile-stars {
+            font-size: 12px;
+            color: #f5a623;
+            letter-spacing: 0.5px;
+        }
+        .app-tile-item .tile-category {
+            font-size: 11px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Collections */
+        .collections-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 6px;
+        }
+        .collection-card {
+            width: 180px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .collection-card:active {
+            transform: scale(0.97);
+        }
+        .collection-card .coll-imgs {
+            display: flex;
+            flex-wrap: wrap;
+            border-radius: 6px;
+            overflow: hidden;
+            height: 80px;
+            background: #ddd;
+        }
+        .collection-card .coll-imgs img {
+            width: 50%;
+            height: 50%;
+            object-fit: cover;
+        }
+        .collection-card .coll-title {
+            font-size: 14px;
+            margin-top: 4px;
+            color: #333;
+        }
+
+        /* Picks / For You */
+        .picks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .picks-item {
+            display: flex;
+            gap: 12px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            align-items: flex-start;
+        }
+        .picks-item:active {
+            transform: scale(0.98);
+        }
+        .picks-item .picks-icon {
+            width: 70px;
+            height: 70px;
+            flex-shrink: 0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #0078D7;
+        }
+        .picks-item .picks-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .picks-item .picks-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .picks-item .picks-info .picks-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .picks-item .picks-info .picks-price {
+            font-size: 13px;
+            color: #666;
+        }
+        .picks-item .picks-info .picks-stars {
+            font-size: 12px;
+            color: #f5a623;
+        }
+        .picks-item .picks-info .picks-cat {
+            font-size: 11px;
+            color: #888;
+        }
+
+        /* ===== CATEGORIES ===== */
+        .categories-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+        .category-card {
+            width: 260px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .category-card:active {
+            transform: scale(0.97);
+        }
+        .category-card .cat-imgs {
+            display: flex;
+            flex-wrap: wrap;
+            border-radius: 6px;
+            overflow: hidden;
+            height: 120px;
+            background: #ddd;
+        }
+        .category-card .cat-imgs img {
+            width: 50%;
+            height: 50%;
+            object-fit: cover;
+        }
+        .category-card .cat-name {
+            font-size: 20px;
+            font-weight: 300;
+            margin-top: 8px;
+            color: #000;
+        }
+
+        /* ===== ALL APPS ===== */
+        .allapps-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+        }
+
+        /* ===== APP PAGE ===== */
+        .app-layout {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+        }
+        .app-layout .app-info {
+            flex: 1 1 340px;
+            min-width: 260px;
+            max-width: 480px;
+        }
+        .app-layout .app-gallery {
+            flex: 1 1 400px;
+            min-width: 300px;
+        }
+        .app-layout .app-ratings {
+            flex: 0 0 320px;
+        }
+
+        .app-info .app-title {
+            font-size: 34px;
+            font-weight: 300;
+            margin: 0 0 8px 0;
+        }
+        .app-info .app-price {
+            font-size: 22px;
+            font-weight: 300;
+            margin: 4px 0;
+        }
+        .app-info .app-stars {
+            font-size: 16px;
+            color: #f5a623;
+            letter-spacing: 1px;
+        }
+        .app-info .app-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+            margin: 16px 0;
+            white-space: pre-wrap;
+        }
+        .app-info .app-meta {
+            font-size: 13px;
+            color: #666;
+            margin: 4px 0;
+        }
+        .app-info .app-meta strong {
+            color: #333;
+        }
+        .app-info .btn-download {
+            background: #008a00;
+            color: #fff;
+            border: none;
+            padding: 10px 40px;
+            font-size: 16px;
+            border-radius: 4px;
+            margin: 10px 0 6px 0;
+            transition: background 0.2s;
+        }
+        .app-info .btn-download:hover {
+            background: #006600;
+        }
+        .app-info .btn-download.downloaded {
+            background: #cc0000;
+        }
+        .app-info .btn-download.downloaded:hover {
+            background: #990000;
+        }
+        .app-info .legal-text {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.4;
+        }
+        .app-info .legal-text span {
+            color: #008a00;
+        }
+
+        .app-gallery .thumb-strip {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-right: 14px;
+            float: left;
+        }
+        .app-gallery .thumb-strip img,
+        .app-gallery .thumb-strip .thumb-vid {
+            width: 70px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+            background: #ddd;
+        }
+        .app-gallery .thumb-strip .thumb-vid {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #222;
+        }
+        .app-gallery .thumb-strip .thumb-vid .play-badge {
+            color: #fff;
+            font-size: 22px;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        .app-gallery .thumb-strip img.active-thumb,
+        .app-gallery .thumb-strip .thumb-vid.active-thumb {
+            border-color: #008a00;
+        }
+        .app-gallery .main-media {
+            overflow: hidden;
+            border-radius: 6px;
+            background: #eee;
+            min-height: 300px;
+        }
+        .app-gallery .main-media img,
+        .app-gallery .main-media video {
+            width: 100%;
+            max-height: 460px;
+            object-fit: contain;
+            display: block;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .app-gallery .main-media video {
+            background: #000;
+        }
+        .app-gallery .meta-under {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px 40px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #666;
+        }
+        .app-gallery .meta-under .meta-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .app-gallery .meta-under strong {
+            color: #333;
+        }
+
+        .app-ratings .rating-big {
+            font-size: 72px;
+            font-weight: 300;
+            margin: 0;
+            line-height: 1;
+        }
+        .app-ratings .rating-stars-big {
+            font-size: 28px;
+            color: #f5a623;
+            letter-spacing: 2px;
+            margin: 4px 0 8px 0;
+        }
+        .app-ratings .rating-count {
+            font-size: 14px;
+            color: #666;
+        }
+        .app-ratings .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .app-ratings .bar-row .bar-label {
+            width: 60px;
+            flex-shrink: 0;
+        }
+        .app-ratings .bar-row .bar-bg {
+            flex: 1;
+            height: 12px;
+            background: rgba(128, 128, 128, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .app-ratings .bar-row .bar-bg .bar-fill {
+            height: 100%;
+            background: #008a00;
+        }
+        .app-ratings .bar-row .bar-count {
+            width: 30px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .app-ratings .see-all-reviews {
+            color: #008a00 !important;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 6px;
+            display: inline-block;
+        }
+        .app-ratings .see-all-reviews:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== THEMES ===== */
+        .theme-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(128, 128, 128, 0.08);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            max-width: 700px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .theme-card:hover {
+            background: rgba(128, 128, 128, 0.15);
+        }
+        .theme-card .theme-name {
+            font-size: 17px;
+            font-weight: 400;
+        }
+        .theme-card .theme-badge {
+            font-size: 11px;
+            color: #008a00;
+            font-weight: 600;
+            display: block;
+        }
+        .theme-card .theme-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .theme-card .theme-actions button {
+            border: none;
+            padding: 4px 14px;
+            font-size: 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #ccc;
+            color: #000;
+        }
+        .theme-card .theme-actions .btn-del {
+            background: #cc0000;
+            color: #fff;
+        }
+        .theme-card .theme-actions .btn-del:hover {
+            background: #990000;
+        }
+
+        .creator-panel {
+            background: #fff;
+            padding: 24px 28px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            max-width: 700px;
+            margin-top: 20px;
+            display: none;
+            color: #333 !important;
+        }
+        .creator-panel .input-group {
+            margin-bottom: 14px;
+        }
+        .creator-panel .input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 3px;
+            color: #333;
+        }
+        .creator-panel .input-group input[type="text"],
+        .creator-panel .input-group select {
+            padding: 6px 10px;
+            width: 260px;
+            border: 1px solid #999;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        .creator-panel .input-group input[type="text"]:focus,
+        .creator-panel .input-group select:focus {
+            border-color: #008a00;
+            outline: none;
+        }
+        .creator-panel .color-preview {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #999;
+            border-radius: 4px;
+            display: inline-block;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+        .creator-panel .color-picker-popup {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #999;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 200;
+            border-radius: 4px;
+        }
+        .creator-panel .color-picker-popup canvas {
+            cursor: crosshair;
+        }
+        .creator-panel .color-picker-popup .hex-input {
+            width: 90px;
+            padding: 4px;
+            text-align: center;
+            border: 1px solid #999;
+            border-radius: 3px;
+            margin-top: 6px;
+        }
+        .creator-panel .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .creator-panel .btn-row button {
+            padding: 6px 28px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #ccc;
+            color: #000;
+        }
+        .creator-panel .btn-row .btn-save {
+            background: #008a00;
+            color: #fff;
+        }
+        .creator-panel .btn-row .btn-save:hover {
+            background: #006600;
+        }
+        .creator-panel .btn-row .btn-cancel:hover {
+            background: #bbb;
+        }
+
+        /* ===== ACCOUNT ===== */
+        .account-content {
+            max-width: 800px;
+        }
+        .account-content .user-name {
+            font-size: 26px;
+            font-weight: 300;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .account-content .section-title {
+            font-size: 22px;
+            font-weight: 300;
+            margin: 30px 0 10px 0;
+        }
+        .account-content .info-text {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .account-content .store-button {
+            background: #ccc;
+            border: none;
+            padding: 6px 22px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #000;
+        }
+        .account-content .store-button:hover {
+            background: #bbb;
+        }
+        .account-content .store-button.primary {
+            background: #008a00;
+            color: #fff;
+        }
+        .account-content .store-button.primary:hover {
+            background: #006600;
+        }
+        .account-content .store-button.danger {
+            background: #cc0000;
+            color: #fff;
+        }
+        .account-content .store-button.danger:hover {
+            background: #990000;
+        }
+        .account-content .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 10px;
+        }
+        .account-content .toggle-switch {
+            width: 50px;
+            height: 22px;
+            border: 2px solid #333;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            background: #999;
+            transition: background 0.2s;
+        }
+        .account-content .toggle-switch.is-on {
+            background: #008a00;
+        }
+        .account-content .toggle-switch::after {
+            content: "";
+            position: absolute;
+            top: 1px;
+            width: 16px;
+            height: 16px;
+            background: #000;
+            border-radius: 50%;
+            transition: left 0.2s;
+        }
+        .account-content .toggle-switch.is-on::after {
+            left: 30px;
+        }
+        .account-content .toggle-switch.is-off::after {
+            left: 2px;
+        }
+        .account-content .pc-box {
+            border: 2px solid #333;
+            padding: 14px 20px;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.5);
+            margin-top: 6px;
+            border-radius: 4px;
+        }
+        .account-content .pc-box .pc-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .account-content .pc-box .pc-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        /* ===== DL HISTORY ===== */
+        .dl-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            background: rgba(255, 255, 255, 0.5);
+            max-width: 700px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .dl-item:hover {
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .dl-item .dl-img {
+            width: 44px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #0078D7;
+            flex-shrink: 0;
+        }
+        .dl-item .dl-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .dl-item .dl-info .dl-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dl-item .dl-info .dl-date {
+            font-size: 11px;
+            color: #888;
+        }
+        .dl-item .dl-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .dl-item .dl-actions button {
+            border: none;
+            padding: 4px 14px;
+            font-size: 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #008a00;
+            color: #fff;
+        }
+        .dl-item .dl-actions .dl-uninstall {
+            background: #cc0000;
+        }
+        .dl-item .dl-actions .dl-uninstall:hover {
+            background: #990000;
+        }
+        .dl-item .dl-actions .dl-update {
+            background: #008a00;
+        }
+        .dl-item .dl-actions .dl-update:hover {
+            background: #006600;
+        }
+        .dl-empty {
+            font-style: italic;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* ===== SHOP ===== */
+        .shop-panel {
+            background: #fff;
+            padding: 20px 24px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            max-width: 700px;
+            margin-top: 16px;
+            display: none;
+        }
+        .shop-panel .shop-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .shop-panel .shop-item .shop-name {
+            font-weight: 400;
+        }
+        .shop-panel .shop-item button {
+            border: none;
+            padding: 4px 18px;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #008a00;
+            color: #fff;
+            font-size: 13px;
+        }
+        .shop-panel .shop-item button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+        .shop-panel .shop-item button:hover:not(:disabled) {
+            background: #006600;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: #fff;
+            padding: 28px 32px;
+            border-radius: 6px;
+            max-width: 460px;
+            width: 90%;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+        }
+        .modal-box h2 {
+            font-weight: 300;
+            font-size: 26px;
+            margin-top: 0;
+            color: #000;
+        }
+        .modal-box .modal-body {
+            margin: 16px 0;
+        }
+        .modal-box .modal-body input,
+        .modal-box .modal-body select {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
+            border: 1px solid #999;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        .modal-box .modal-body input:focus,
+        .modal-box .modal-body select:focus {
+            border-color: #008a00;
+            outline: none;
+        }
+        .modal-box .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .modal-box .modal-actions button {
+            padding: 6px 28px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #ccc;
+            color: #000;
+        }
+        .modal-box .modal-actions .btn-primary {
+            background: #008a00;
+            color: #fff;
+        }
+        .modal-box .modal-actions .btn-primary:hover {
+            background: #006600;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            #topBarContainer {
+                padding: 6px 12px;
+                height: 48px;
+                flex-wrap: wrap;
+            }
+            #topBarContainer .search-container {
+                flex: 1 1 120px;
+                min-width: 80px;
+                height: 26px;
+            }
+            #topBarContainer .logo-home-container {
+                font-size: 15px;
+            }
+            #topBarContainer .logo-home-container img {
+                height: 24px;
+                width: 24px;
+            }
+            #topBarContainer .nav-link {
+                font-size: 12px;
+            }
+            #pageContainer {
+                margin-top: 48px;
+                padding: 12px 14px 40px 14px;
+            }
+            .page-header h1 {
+                font-size: 28px;
+            }
+            .app-layout {
+                flex-direction: column;
+            }
+            .app-layout .app-info {
+                max-width: 100%;
+            }
+            .app-layout .app-ratings {
+                flex: 1 1 auto;
+            }
+            .app-gallery .thumb-strip {
+                flex-direction: row;
+                float: none;
+                margin-bottom: 10px;
+                flex-wrap: wrap;
+            }
+            .app-gallery .thumb-strip img,
+            .app-gallery .thumb-strip .thumb-vid {
+                width: 60px;
+                height: 44px;
+            }
+            .app-gallery .main-media img,
+            .app-gallery .main-media video {
+                max-height: 280px;
+            }
+            .spotlight-main img {
+                height: 160px;
+            }
+            .home-col {
+                flex: 1 1 100%;
+            }
+            .categories-grid .category-card {
+                width: 100%;
+                max-width: 320px;
+            }
+            .app-tile-item {
+                width: 120px;
+            }
+            .app-tile-item .tile-img {
+                width: 120px;
+                height: 120px;
+            }
+            .collection-card {
+                width: 140px;
+            }
+            .collection-card .coll-imgs {
+                height: 64px;
+            }
+            .app-ratings .rating-big {
+                font-size: 52px;
+            }
+        }
+        @media (max-width: 480px) {
+            #topBarContainer .search-container {
+                flex: 0 0 100px;
+            }
+            #topBarContainer .nav-link {
+                font-size: 11px;
+                padding: 2px 4px;
+            }
+            .page-header h1 {
+                font-size: 22px;
+            }
+            .app-tile-item {
+                width: 100px;
+            }
+            .app-tile-item .tile-img {
+                width: 100px;
+                height: 100px;
+            }
+            .app-gallery .main-media img,
+            .app-gallery .main-media video {
+                max-height: 200px;
+            }
+            .creator-panel {
+                padding: 16px;
+            }
+            .creator-panel .input-group input[type="text"],
+            .creator-panel .input-group select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== TOP BAR ===== -->
+    <div id="topBarContainer">
+        <ul>
+            <li class="logo-home-container" id="logoHome">
+                <img src="https://w-8-1-projects.github.io/Rework-Store-Revived/RwStore.png" alt="Store" />
+                <span>Rework Webstore</span>
+            </li>
+            <li class="nav-link" data-page="home" id="navHome">Home</li>
+            <li class="nav-link" data-page="categories" id="navCategories">Categories</li>
+            <li class="nav-link" data-page="charts" id="navCharts">Charts</li>
+            <li class="nav-link" data-page="allapps" id="navAllApps">All Apps</li>
+            <li class="nav-link" data-page="themes" id="navThemes">Themes</li>
+            <li class="nav-link" data-page="account" id="navAccount">Account</li>
+            <li style="flex:1;min-width:20px;"></li>
+            <li style="display:flex;align-items:center;gap:6px;">
+                <div class="search-container">
+                    <input type="text" id="searchBar" placeholder="Search" />
+                    <span class="search-icon">🔍</span>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <!-- ===== PAGE CONTAINER ===== -->
+    <div id="pageContainer">
+
+        <!-- ======== HOME PAGE ======== -->
+        <div id="page-home" class="page active">
+            <div class="page-header">
+                <h1>Rework Webstore</h1>
+                <span class="sub-count" id="homeSubCount"></span>
+            </div>
+            <div class="home-layout" id="homeLayout">
+                <!-- Spotlight -->
+                <div class="home-col" style="flex:2 1 500px;">
+                    <h2 id="spotlightLabel">Spotlight</h2>
+                    <div class="spotlight-wrap">
+                        <div class="spotlight-thumbs" id="spotlightThumbs"></div>
+                        <div class="spotlight-main" id="spotlightMain">
+                            <img id="spotlightImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='260' fill='%23ddd'/%3E" alt="Spotlight" />
+                            <span class="spot-title" id="spotTitle">Loading...</span>
+                            <span class="spot-desc" id="spotDesc"></span>
+                            <span class="spot-meta"><span class="spot-stars" id="spotStars">★★★★★</span> <span id="spotCount">0</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rework Picks -->
+                <div class="home-col" style="flex:1 1 280px;">
+                    <h2 id="picksLabel">Rework picks <span class="see-all" data-page="categories" id="picksSeeAll">See all</span></h2>
+                    <div class="picks-list" id="picksList"></div>
+                </div>
+
+                <!-- For You -->
+                <div class="home-col" style="flex:1 1 280px;">
+                    <h2 id="foryouLabel">For you</h2>
+                    <div class="picks-list" id="forYouList"></div>
+                </div>
+
+                <!-- Collections -->
+                <div class="home-col" style="flex:1 1 100%;">
+                    <h2 id="collectionsLabel">Collections <span class="see-all" data-page="categories" id="collectionsSeeAll">See all</span></h2>
+                    <div class="collections-grid" id="collectionsGrid"></div>
+                </div>
+
+                <!-- Dynamic sections will be injected here -->
+                <div id="dynamicSections" style="flex:1 1 100%;display:flex;flex-wrap:wrap;gap:30px;"></div>
+            </div>
+        </div>
+
+        <!-- ======== CATEGORIES PAGE ======== -->
+        <div id="page-categories" class="page">
+            <div class="page-header">
+                <div class="back-wrap"><button class="win-backbutton" data-back></button></div>
+                <h1 id="catPageTitle">Categories</h1>
+                <span class="sub-count" id="catSubCount"></span>
+            </div>
+            <div class="categories-grid" id="categoriesGrid"></div>
+        </div>
+
+        <!-- ======== CHARTS PAGE ======== -->
+        <div id="page-charts" class="page">
+            <div class="page-header">
+                <div class="back-wrap"><button class="win-backbutton" data-back></button></div>
+                <h1 id="chartsTitle">Top charts</h1>
+                <span class="sub-count" id="chartsSubCount"></span>
+            </div>
+            <div class="app-tile-grid" id="chartsGrid"></div>
+        </div>
+
+        <!-- ======== ALL APPS PAGE ======== -->
+        <div id="page-allapps" class="page">
+            <div class="page-header">
+                <div class="back-wrap"><button class="win-backbutton" data-back></button></div>
+                <h1 id="allAppsTitle">All Apps</h1>
+                <span class="sub-count" id="allAppsSubCount"></span>
+            </div>
+            <div class="allapps-grid" id="allAppsGrid"></div>
+        </div>
+
+        <!-- ======== THEMES PAGE ======== -->
+        <div id="page-themes" class="page">
+            <div class="page-header">
+                <div class="back-wrap"><button class="win-backbutton" data-back></button></div>
+                <h1>Themes</h1>
+                <span class="sub-count" id="themeSubCount"></span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                <button class="store-button" id="btnCreateTheme">Create Theme</button>
+                <button class="store-button" id="btnImportTheme">Import Theme</button>
+                <button class="store-button primary" id="btnShopThemes">Theme-Shop</button>
+            </div>
+            <div id="themeList"></div>
+            <div class="creator-panel" id="creatorPanel">
+                <h2 style="font-weight:300;margin-top:0;" id="creatorTitle">Theme Creator</h2>
+                <div class="input-group"><label id="labelThemeName">Theme Name:</label><input type="text" id="themeName" placeholder="My Theme" /></div>
+                <div class="input-group"><label id="labelThemeImg">Background Image URL:</label><input type="text" id="themeImg" placeholder="https://example.com/bg.jpg" /></div>
+                <div class="input-group"><label id="labelThemeBg">Background Color:</label><div class="color-preview" id="previewBg" style="background:#f2f2f2;"></div><input type="hidden" id="themeBg" value="#f2f2f2" /></div>
+                <div class="input-group"><label id="labelThemeText">Text Color:</label><div class="color-preview" id="previewText" style="background:#000000;"></div><input type="hidden" id="themeText" value="#000000" /></div>
+                <div class="input-group"><label id="labelThemeTopbar">TopBar Color:</label><div class="color-preview" id="previewTopbar" style="background:#008a00;"></div><input type="hidden" id="themeTopbar" value="#008a00" /></div>
+                <div class="input-group"><label id="labelThemeTopbarText">TopBar Text Color:</label><div class="color-preview" id="previewTopbarText" style="background:#ffffff;"></div><input type="hidden" id="themeTopbarText" value="#ffffff" /></div>
+                <div class="input-group"><label id="labelThemeSearchBar">Search Bar Color:</label><div class="color-preview" id="previewSearchBar" style="background:#ffffff;"></div><input type="hidden" id="themeSearchBar" value="#ffffff" /></div>
+                <div class="input-group"><label id="labelThemeSearchIcon">Search Icon Color:</label><div class="color-preview" id="previewSearchIcon" style="background:#008a00;"></div><input type="hidden" id="themeSearchIcon" value="#008a00" /></div>
+                <div class="input-group"><label id="labelThemeFont">Font:</label>
+                    <select id="themeFont">
+                        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="'Courier New', monospace">Courier New</option>
+                        <option value="Verdana, sans-serif">Verdana</option>
+                        <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                        <option value="Tahoma, sans-serif">Tahoma</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                    </select>
+                </div>
+                <div class="input-group"><label><input type="checkbox" id="themeHideTopbar" /> <span id="labelHideTopbar">Hide TopBar (right-click to show)</span></label></div>
+                <div class="btn-row">
+                    <button class="btn-save" id="saveThemeBtn">Save &amp; Apply</button>
+                    <button class="btn-cancel" id="cancelCreator">Cancel</button>
+                </div>
+            </div>
+            <div class="shop-panel" id="shopPanel">
+                <h2 style="font-weight:300;margin-top:0;" id="shopPanelTitle">Theme Shop</h2>
+                <div id="shopList"></div>
+                <button class="store-button" id="closeShopBtn" style="margin-top:12px;">Close</button>
+            </div>
+        </div>
+
+        <!-- ======== ACCOUNT PAGE ======== -->
+        <div id="page-account" class="page">
+            <div class="page-header">
+                <div class="back-wrap"><button class="win-backbutton" data-back></button></div>
+                <h1 id="accountTitle">Your account</h1>
+            </div>
+            <div class="account-content">
+                <div class="user-name" id="accUserName">Loading...</div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px;">
+                    <button class="store-button" id="accThemeBtn">Change Theme</button>
+                    <button class="store-button" id="accLangBtn">Change Language</button>
+                    <button class="store-button" id="accAboutBtn">About Rework Webstore</button>
+                </div>
+
+                <div class="section-title" id="paymentTitle">Payment and billing info</div>
+                <p class="info-text" id="paymentStatus">Before you can purchase an app you need to add a payment method to your account.</p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="store-button primary" id="addPaymentBtn">Add payment method</button>
+                    <button class="store-button danger" id="removePaymentBtn" style="display:none;">Remove</button>
+                </div>
+
+                <div class="section-title" id="securityTitle">Security</div>
+                <p class="info-text" id="securityDesc">Always ask for your password when buying an app</p>
+                <div class="toggle-row">
+                    <span id="toggleLabel">Yes</span>
+                    <div class="toggle-switch is-on" id="securityToggle"></div>
+                </div>
+
+                <div class="section-title" id="pcsTitle">Your PCs</div>
+                <p class="info-text" id="pcsDesc">When you install an app on a PC from the Rework Webstore, the name of that PC will appear here. You can install the apps you get from the Store on up to 5 PCs.</p>
+                <div class="pc-box">
+                    <div class="pc-name" id="pcNameDisplay">This PC</div>
+                    <div class="pc-label" id="pcLabel">This PC</div>
+                </div>
+
+                <div class="section-title" id="dlHistoryTitle">Download History</div>
+                <p class="info-text" id="dlHistoryDesc">Here you can see your Apps that you have downloaded from the Rework Webstore.</p>
+                <div id="dlHistoryList"></div>
+
+                <div class="section-title" id="sidebarTitle">Sidebar</div>
+                <p class="info-text" id="sidebarDesc">The sidebar gives you quick access to navigation, notes and a music player.</p>
+                <button class="store-button" id="sidebarToggleBtn">Enable Sidebar</button>
+            </div>
+        </div>
+
+        <!-- ======== APP DETAIL (dynamic) ======== -->
+        <div id="page-app" class="page">
+            <div class="page-header">
+                <div class="back-wrap"><button class="win-backbutton" data-back></button></div>
+                <h1 id="appDetailTitle">App</h1>
+            </div>
+            <div class="app-layout" id="appDetailLayout">
+                <div class="app-info" id="appInfoCol">
+                    <div class="app-title" id="appDispName">App Name</div>
+                    <div class="app-price" id="appPrice">Free</div>
+                    <div class="app-stars" id="appStars">★★★★★</div>
+                    <button class="btn-download" id="appDownloadBtn">Download</button>
+                    <div id="appStatusArea" style="display:none;margin:6px 0;">
+                        <div id="appStatusText">Initializing...</div>
+                        <progress id="appProgress" class="win-progress-bar" value="0" max="100" style="width:100%;height:6px;"></progress>
+                    </div>
+                    <div class="legal-text" id="legalText">When you install an app, you agree to the <span>Terms of Use</span> and any <span>additional terms</span>.<br><br>This app has <span>permission</span> to use some features of your PC.</div>
+                    <div class="app-desc" id="appDesc"></div>
+                    <div class="app-meta"><strong id="metaPublisher">Published by:</strong> <span id="appPublisher"></span></div>
+                    <div class="app-meta"><strong id="metaCategory">Category:</strong> <span id="appCategory"></span></div>
+                    <div class="app-meta"><strong id="metaSize">Size:</strong> <span id="appSize"></span></div>
+                    <div class="app-meta"><strong id="metaOS">OS:</strong> <span id="appOS"></span></div>
+                    <div class="app-meta"><strong id="metaArch">Architecture:</strong> <span id="appArch"></span></div>
+                    <div class="app-meta"><strong id="metaAge">Content Rating:</strong> <span id="appAge"></span></div>
+                </div>
+                <div class="app-gallery" id="appGalleryCol">
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                        <div class="thumb-strip" id="appThumbs"></div>
+                        <div class="main-media" id="appMainMedia">
+                            <img id="appMainImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' fill='%23ddd'/%3E" alt="Screenshot" />
+                        </div>
+                    </div>
+                    <div class="meta-under" id="appMetaUnder"></div>
+                </div>
+                <div class="app-ratings" id="appRatingsCol">
+                    <div style="display:flex;align-items:baseline;gap:14px;">
+                        <h2 style="font-weight:300;margin:0;" id="ratingsHeader">Ratings and reviews</h2>
+                        <span class="see-all-reviews" id="seeAllReviews">See all</span>
+                    </div>
+                    <div class="rating-big" id="ratingBig">4.3</div>
+                    <div class="rating-stars-big" id="ratingStarsBig">★★★★★</div>
+                    <div class="rating-count" id="ratingCount">0 ratings</div>
+                    <div id="ratingBars"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== MODAL ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h2 id="modalTitle">Modal</h2>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-actions">
+                <button id="modalCancel">Cancel</button>
+                <button class="btn-primary" id="modalConfirm">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================================
+        //  BROWSER SHIM – replaces Windows.* APIs with browser equivalents
+        // ========================================================================
+
+        (function() {
+            "use strict";
+
+            // ---- Shim: Windows global ----
+            if (typeof Windows === 'undefined') {
+                window.Windows = {};
+            }
+
+            // ---- Shim: MSApp ----
+            if (typeof MSApp === 'undefined') {
+                window.MSApp = {
+                    execUnsafeLocalFunction: function(fn) { return fn(); },
+                    terminateApp: function() { console.warn('MSApp.terminateApp called'); },
+                    createBlobFromRandomAccessStream: function(mime, stream) {
+                        return new Blob([stream], { type: mime });
+                    }
+                };
+            }
+
+            // ---- Shim: Windows.Foundation ----
+            if (!Windows.Foundation) Windows.Foundation = {};
+            if (!Windows.Foundation.Uri) {
+                Windows.Foundation.Uri = function(uri) {
+                    this.uri = uri;
+                    this.toString = function() { return this.uri; };
+                };
+            }
+
+            // ---- Shim: Windows.Storage ----
+            if (!Windows.Storage) Windows.Storage = {};
+            if (!Windows.Storage.ApplicationData) {
+                Windows.Storage.ApplicationData = {
+                    current: {
+                        localFolder: {
+                            createFileAsync: function(name, opts) {
+                                return new Promise(function(resolve) {
+                                    resolve({ name: name, path: name, deleteAsync: function() { return Promise.resolve(); } });
+                                });
+                            },
+                            getFileAsync: function(name) {
+                                return new Promise(function(resolve, reject) {
+                                    reject(new Error('File not found'));
+                                });
+                            },
+                            createFolderAsync: function(name, opts) {
+                                return Promise.resolve({ getFilesAsync: function() { return Promise.resolve([]); } });
+                            }
+                        }
+                    }
+                };
+            }
+            if (!Windows.Storage.DownloadsFolder) {
+                Windows.Storage.DownloadsFolder = {
+                    createFileAsync: function(name, opts) {
+                        return new Promise(function(resolve) {
+                            resolve({ name: name, path: name, deleteAsync: function() { return Promise.resolve(); } });
+                        });
+                    }
+                };
+            }
+            if (!Windows.Storage.FileIO) {
+                Windows.Storage.FileIO = {
+                    readTextAsync: function(file) { return Promise.resolve('{}'); },
+                    writeTextAsync: function(file, text) { return Promise.resolve(); },
+                    readBufferAsync: function(file) {
+                        return Promise.resolve(new ArrayBuffer(0));
+                    }
+                };
+            }
+            if (!Windows.Storage.Streams) Windows.Storage.Streams = {};
+            if (!Windows.Storage.Streams.DataReader) {
+                Windows.Storage.Streams.DataReader = {
+                    fromBuffer: function() {
+                        return { readBytes: function() {} };
+                    }
+                };
+            }
+
+            // ---- Shim: Windows.System ----
+            if (!Windows.System) Windows.System = {};
+            if (!Windows.System.Launcher) {
+                Windows.System.Launcher = {
+                    launchUriAsync: function(uri) {
+                        window.open(uri.uri || uri, '_blank');
+                        return Promise.resolve({ isCompleted: true });
+                    },
+                    launchFileAsync: function(file) {
+                        return Promise.resolve({ isCompleted: true });
+                    }
+                };
+            }
+            if (!Windows.System.UserProfile) Windows.System.UserProfile = {};
+            if (!Windows.System.UserProfile.UserInformation) {
+                Windows.System.UserProfile.UserInformation = {
+                    getDisplayNameAsync: function() { return Promise.resolve('User'); }
+                };
+            }
+
+            // ---- Shim: Windows.Security ----
+            if (!Windows.Security) Windows.Security = {};
+            if (!Windows.Security.ExchangeActiveSyncProvisioning) Windows.Security.ExchangeActiveSyncProvisioning = {};
+            if (!Windows.Security.ExchangeActiveSyncProvisioning.EasClientDeviceInformation) {
+                Windows.Security.ExchangeActiveSyncProvisioning.EasClientDeviceInformation = function() {
+                    this.friendlyName = 'This PC';
+                };
+            }
+
+            // ---- Shim: Windows.UI ----
+            if (!Windows.UI) Windows.UI = {};
+            if (!Windows.UI.Notifications) Windows.UI.Notifications = {};
+            if (!Windows.UI.Notifications.TileUpdateManager) {
+                Windows.UI.Notifications.TileUpdateManager = {
+                    createTileUpdaterForApplication: function() {
+                        return { clear: function() {}, enableNotificationQueue: function() {}, update: function() {} };
+                    }
+                };
+            }
+            if (!Windows.UI.Notifications.ToastNotificationManager) {
+                Windows.UI.Notifications.ToastNotificationManager = {
+                    getTemplateContent: function() {
+                        var doc = document.implementation.createDocument('', '', null);
+                        var el = doc.createElement('toast');
+                        doc.appendChild(el);
+                        return doc;
+                    },
+                    createToastNotifier: function() {
+                        return { show: function() { console.log('[Toast]', arguments); } };
+                    }
+                };
+            }
+            if (!Windows.UI.Popups) Windows.UI.Popups = {};
+            if (!Windows.UI.Popups.MessageDialog) {
+                Windows.UI.Popups.MessageDialog = function(message, title) {
+                    this.message = message;
+                    this.title = title;
+                    this.commands = [];
+                    this.cancelCommandIndex = -1;
+                    this.showAsync = function() {
+                        return new Promise(function(resolve) {
+                            alert((this.title || '') + '\n' + this.message);
+                            resolve({});
+                        }.bind(this));
+                    };
+                };
+            }
+            if (!Windows.UI.ViewManagement) Windows.UI.ViewManagement = {};
+            if (!Windows.UI.ViewManagement.ApplicationView) {
+                Windows.UI.ViewManagement.ApplicationView = {
+                    value: 0
+                };
+            }
+            if (!Windows.UI.ViewManagement.UISettings) {
+                Windows.UI.ViewManagement.UISettings = function() {
+                    this.animationsEnabled = true;
+                };
+            }
+            if (!Windows.UI.Input) Windows.UI.Input = {};
+            if (!Windows.UI.Input.EdgeGesture) {
+                Windows.UI.Input.EdgeGesture = {
+                    getForCurrentView: function() { return null; }
+                };
+            }
+
+            // ---- Shim: Windows.Management ----
+            if (!Windows.Management) Windows.Management = {};
+            if (!Windows.Management.Deployment) Windows.Management.Deployment = {};
+            if (!Windows.Management.Deployment.PackageManager) {
+                Windows.Management.Deployment.PackageManager = function() {
+                    this.addPackageAsync = function(uri, deps, opts) {
+                        return new Promise(function(resolve) {
+                            console.log('[PackageManager] Simulated install of', uri.uri || uri);
+                            setTimeout(resolve, 300);
+                        });
+                    };
+                };
+                Windows.Management.Deployment.DeploymentOptions = { developmentMode: 0 };
+            }
+
+            // ---- Shim: Windows.Data ----
+            if (!Windows.Data) Windows.Data = {};
+            if (!Windows.Data.Xml) Windows.Data.Xml = {};
+            if (!Windows.Data.Xml.Dom) Windows.Data.Xml.Dom = {};
+            if (!Windows.Data.Xml.Dom.XmlDocument) {
+                Windows.Data.Xml.Dom.XmlDocument = function() {
+                    this.loadXml = function() {};
+                    this.getElementsByTagName = function() { return []; };
+                    this.createTextNode = function(t) { return t; };
+                };
+            }
+
+            // ---- Shim: Windows.Networking ----
+            if (!Windows.Networking) Windows.Networking = {};
+            if (!Windows.Networking.BackgroundTransfer) Windows.Networking.BackgroundTransfer = {};
+            if (!Windows.Networking.BackgroundTransfer.BackgroundDownloader) {
+                Windows.Networking.BackgroundTransfer.BackgroundDownloader = function() {
+                    this.createDownload = function(uri, file) {
+                        return {
+                            startAsync: function() {
+                                return new Promise(function(resolve) {
+                                    console.log('[Download] Simulated download from', uri.uri || uri);
+                                    setTimeout(resolve, 500);
+                                });
+                            }
+                        };
+                    };
+                };
+            }
+
+            // ---- Shim: Windows.Graphics ----
+            if (!Windows.Graphics) Windows.Graphics = {};
+            if (!Windows.Graphics.Display) Windows.Graphics.Display = {};
+            if (!Windows.Graphics.Display.DisplayProperties) {
+                Windows.Graphics.Display.DisplayProperties = {
+                    autoRotationPreferences: 0
+                };
+            }
+
+            // ---- Shim: Windows.ApplicationModel ----
+            if (!Windows.ApplicationModel) Windows.ApplicationModel = {};
+            if (!Windows.ApplicationModel.DataTransfer) Windows.ApplicationModel.DataTransfer = {};
+            if (!Windows.ApplicationModel.DataTransfer.DataTransferManager) {
+                Windows.ApplicationModel.DataTransfer.DataTransferManager = {
+                    getForCurrentView: function() {
+                        return { addEventListener: function() {}, removeEventListener: function() {} };
+                    }
+                };
+            }
+            if (!Windows.ApplicationModel.DataTransfer.HtmlFormatHelper) {
+                Windows.ApplicationModel.DataTransfer.HtmlFormatHelper = {
+                    createHtmlFormat: function(html) { return html; }
+                };
+            }
+
+            // ---- Shim: Windows.UI.WebUI ----
+            if (!Windows.UI.WebUI) Windows.UI.WebUI = {};
+            if (!Windows.UI.WebUI.WebUIApplication) {
+                Windows.UI.WebUI.WebUIApplication = {
+                    addEventListener: function() {},
+                    removeEventListener: function() {}
+                };
+            }
+
+            // ---- Shim: WinJS ----
+            if (typeof WinJS === 'undefined') {
+                window.WinJS = {
+                    xhr: function(options) {
+                        return new Promise(function(resolve, reject) {
+                            var x = new XMLHttpRequest();
+                            x.open(options.type || 'GET', options.url, true);
+                            if (options.headers) {
+                                for (var h in options.headers) x.setRequestHeader(h, options.headers[h]);
+                            }
+                            x.onload = function() {
+                                resolve({ responseText: x.responseText, status: x.status });
+                            };
+                            x.onerror = function() {
+                                reject(new Error('XHR failed'));
+                            };
+                            x.send(options.data || null);
+                        });
+                    },
+                    Promise: Promise,
+                    UI: {
+                        OM: function() {}
+                    }
+                };
+                window.WinJS.UI.OM = function() {};
+            }
+
+            // ---- Shim: console for missing methods ----
+            if (!console.group) console.group = function() {};
+            if (!console.groupEnd) console.groupEnd = function() {};
+            if (!console.time) console.time = function() {};
+            if (!console.timeEnd) console.timeEnd = function() {};
+
+            console.log('[Shim] Windows APIs shimmed for browser');
+
+            // ---- Shim: Windows.UI.WebUI.WebUIApplication events ----
+            var _activateListeners = [];
+            var _resumeListeners = [];
+            var _suspendListeners = [];
+
+            Windows.UI.WebUI.WebUIApplication.addEventListener = function(event, handler) {
+                if (event === 'activated') _activateListeners.push(handler);
+                else if (event === 'resuming') _resumeListeners.push(handler);
+                else if (event === 'suspending') _suspendListeners.push(handler);
+            };
+            Windows.UI.WebUI.WebUIApplication.removeEventListener = function(event, handler) {
+                // no-op
+            };
+
+            // Fire activation after a tick
+            setTimeout(function() {
+                var args = {
+                    detail: { arguments: '' },
+                    splashScreen: {
+                        imageLocation: { x: 0, y: 0, width: 0, height: 0 }
+                    }
+                };
+                _activateListeners.forEach(function(fn) { fn(args); });
+            }, 50);
+
+            // ---- Shim: document.visibilityState for Windows ----
+            if (!document.msVisibilityState) {
+                Object.defineProperty(document, 'msVisibilityState', {
+                    get: function() { return document.visibilityState; }
+                });
+            }
+
+            console.log('[Shim] Ready');
+        })();
+
+
+        // ========================================================================
+        //  MAIN APP
+        // ========================================================================
+
+        (function() {
+            "use strict";
+
+            // ---- CONFIG ----
+            var MASTER_SERVER = 'https://w-8-1-projects.github.io/Rework-Store-Revived/data/mainPage.json';
+            var ALL_APPS_URL = 'https://w-8-1-projects.github.io/Rework-Store-Revived/data/AllApps.json';
+            var APPS_ENDPOINT = 'https://w-8-1-projects.github.io/Rework-Store-Revived/data/apps/';
+            var ADS_URL = 'https://w-8-1-projects.github.io/Rework-Store-Revived/data/Advertisements.json';
+
+            var LANG = localStorage.getItem('ws_language') || 'en';
+            var DOWNLOAD_HISTORY_KEY = 'ws_download_history';
+            var THEMES_KEY = 'ws_custom_themes';
+            var ACTIVE_THEME_KEY = 'ws_active_theme';
+
+            // ---- TRANSLATIONS (expanded) ----
+            var T = {
+                'en': {
+                    free: 'Free', seeAll: 'See all', ratings: 'ratings', avgRating: 'average rating',
+                    reviews: 'reviews', review: 'review', stars: ' stars', star: ' star',
+                    download: 'Download', uninstall: 'Uninstall', downloaded: 'downloaded',
+                    init: 'Initializing...', install: 'Installing...', toastMsg: ' was downloaded.',
+                    dlEmpty: "You haven't downloaded any apps yet.",
+                    dlInstalledOn: 'Downloaded on', dlUpdateAvailable: 'Update available',
+                    sidebarEnable: 'Enable Sidebar', sidebarDisable: 'Disable Sidebar',
+                    publishedBy: 'Published by', category: 'Category', approxSize: 'Approximate size',
+                    os: 'Supported OS', architecture: 'Architecture', contentRating: 'Content Rating:',
+                    description: 'Description', tags: 'Tags', update: 'Update',
+                    defaultTheme: 'Default', official: 'Official Theme', export: 'Export',
+                    edit: 'Edit', delete: 'Delete', create: 'Create Theme', import: 'Import Theme',
+                    shop: 'Theme-Shop', closeShop: 'Close', installed: 'Installed',
+                    addPayment: 'Add payment method', removePayment: 'Remove',
+                    editPayment: 'Edit payment method', security: 'Security',
+                    alwaysAsk: 'Always ask for your password when buying an app',
+                    yes: 'Yes', no: 'No', yourPCs: 'Your PCs', thisPC: 'This PC',
+                    account: 'Your account', changeTheme: 'Change Theme',
+                    changeLang: 'Change Language', about: 'About Rework Webstore',
+                    paymentInfo: 'Payment and billing info',
+                    paymentStatus: 'Before you can purchase an app you need to add a payment method to your account.',
+                    sidebarInfo: 'The sidebar gives you quick access to navigation, notes and a music player.',
+                    dlHistory: 'Download History',
+                    dlHistoryInfo: 'Here you can see your Apps that you have downloaded from the Rework Webstore.',
+                    cardNumber: 'Card number (xxxx xxxx xxxx xxxx)',
+                    submit: 'Submit', cancel: 'Cancel', chooseLang: 'Choose your language',
+                    allApps: 'All Apps', home: 'Home', categories: 'Categories', charts: 'Charts',
+                    themes: 'Themes', accountLabel: 'Account', search: 'Search',
+                    spotlight: 'Spotlight', reworkPicks: 'Rework picks', forYou: 'For you',
+                    collections: 'Collections', topCharts: 'Top charts',
+                    ratingsTitle: 'Ratings and reviews', seeAllReviews: 'See all',
+                    legalText: 'When you install an app, you agree to the <span>Terms of Use</span> and any <span>additional terms</span>.<br><br>This app has <span>permission</span> to use some features of your PC.',
+                    themeCreator: 'Theme Creator', themeName: 'Theme Name:',
+                    themeImg: 'Background Image URL:', themeBg: 'Background Color:',
+                    themeText: 'Text Color:', themeTopbar: 'TopBar Color:',
+                    themeTopbarText: 'TopBar Text Color:', themeSearchBar: 'Search Bar Color:',
+                    themeSearchIcon: 'Search Icon Color:', themeFont: 'Font:',
+                    hideTopbar: 'Hide TopBar (right-click to show)',
+                    saveApply: 'Save & Apply', cancelBtn: 'Cancel',
+                    createTheme: 'Create Theme', importTheme: 'Import Theme',
+                    shopTitle: 'Theme Shop', closeShopBtn: 'Close',
+                    paymentTitle: 'Payment and billing info',
+                    securityTitle: 'Security', pcsTitle: 'Your PCs',
+                    dlHistoryTitle: 'Download History', sidebarTitle: 'Sidebar',
+                    sidebarDesc: 'The sidebar gives you quick access to navigation, notes and a music player.',
+                    pcLabel: 'This PC',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Version: 3.0.0.0</p><p>Release: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Visit Website</a></p>',
+                    noApps: 'No apps found.'
+                },
+                'de': {
+                    free: 'Kostenlos', seeAll: 'Alle anzeigen', ratings: 'Bewertungen', avgRating: 'Durchschnittliche Bewertung',
+                    reviews: 'Bewertungen', review: 'Bewertung', stars: ' Sterne', star: ' Stern',
+                    download: 'Herunterladen', uninstall: 'Deinstallieren', downloaded: 'heruntergeladen',
+                    init: 'Initialisierung...', install: 'Installation...', toastMsg: ' wurde heruntergeladen.',
+                    dlEmpty: "Du hast noch keine Apps heruntergeladen.",
+                    dlInstalledOn: 'Heruntergeladen am', dlUpdateAvailable: 'Update verfügbar',
+                    sidebarEnable: 'Sidebar aktivieren', sidebarDisable: 'Sidebar deaktivieren',
+                    publishedBy: 'Veröffentlicht von', category: 'Kategorie', approxSize: 'Größe',
+                    os: 'Betriebssystem', architecture: 'Architektur', contentRating: 'Altersfreigabe:',
+                    description: 'Beschreibung', tags: 'Tags', update: 'Aktualisieren',
+                    defaultTheme: 'Standard', official: 'Offizielles Design', export: 'Exportieren',
+                    edit: 'Bearbeiten', delete: 'Löschen', create: 'Design erstellen', import: 'Importieren',
+                    shop: 'Design-Shop', closeShop: 'Schließen', installed: 'Installiert',
+                    addPayment: 'Zahlungsmethode hinzufügen', removePayment: 'Entfernen',
+                    editPayment: 'Zahlungsmethode bearbeiten', security: 'Sicherheit',
+                    alwaysAsk: 'Beim Kauf einer App immer nach dem Kennwort fragen',
+                    yes: 'Ja', no: 'Nein', yourPCs: 'Ihre PCs', thisPC: 'Dieser PC',
+                    account: 'Ihr Konto', changeTheme: 'Design ändern',
+                    changeLang: 'Sprache ändern', about: 'Über Rework Webstore',
+                    paymentInfo: 'Zahlungs- und Abrechnungsinfo',
+                    paymentStatus: 'Bevor Sie eine App kaufen können, müssen Sie Ihrem Konto eine Zahlungsmethode hinzufügen.',
+                    sidebarInfo: 'Die Sidebar bietet schnellen Zugriff auf Navigation, Notizen und einen Musikplayer.',
+                    dlHistory: 'Downloadverlauf',
+                    dlHistoryInfo: 'Hier kannst du deine Apps sehen, die du aus dem Rework Webstore heruntergeladen hast.',
+                    cardNumber: 'Kartennummer (xxxx xxxx xxxx xxxx)',
+                    submit: 'Speichern', cancel: 'Abbrechen', chooseLang: 'Wählen Sie Ihre Sprache',
+                    allApps: 'Alle Apps', home: 'Startseite', categories: 'Kategorien', charts: 'Charts',
+                    themes: 'Designs', accountLabel: 'Konto', search: 'Suchen',
+                    spotlight: 'Im Fokus', reworkPicks: 'Rework-Auswahl', forYou: 'Für Sie',
+                    collections: 'Sammlungen', topCharts: 'Top-Charts',
+                    ratingsTitle: 'Bewertungen und Rezensionen', seeAllReviews: 'Alle anzeigen',
+                    legalText: 'Wenn Sie eine App installieren, stimmen Sie den <span>Nutzungsbedingungen</span> und etwaigen <span>zusätzlichen Bedingungen</span> zu.<br><br>Diese App hat die <span>Berechtigung</span>, einige Funktionen Ihres PCs zu nutzen.',
+                    themeCreator: 'Design-Editor', themeName: 'Name:',
+                    themeImg: 'Hintergrundbild-URL:', themeBg: 'Hintergrundfarbe:',
+                    themeText: 'Textfarbe:', themeTopbar: 'TopBar-Farbe:',
+                    themeTopbarText: 'TopBar-Schriftfarbe:', themeSearchBar: 'Suchleisten-Farbe:',
+                    themeSearchIcon: 'Such-Icon-Farbe:', themeFont: 'Schriftart:',
+                    hideTopbar: 'TopBar ausblenden (Rechtsklick zum Einblenden)',
+                    saveApply: 'Speichern & Übernehmen', cancelBtn: 'Abbrechen',
+                    createTheme: 'Design erstellen', importTheme: 'Importieren',
+                    shopTitle: 'Design-Shop', closeShopBtn: 'Schließen',
+                    paymentTitle: 'Zahlungs- und Abrechnungsinfo',
+                    securityTitle: 'Sicherheit', pcsTitle: 'Ihre PCs',
+                    dlHistoryTitle: 'Downloadverlauf', sidebarTitle: 'Sidebar',
+                    sidebarDesc: 'Die Sidebar bietet schnellen Zugriff auf Navigation, Notizen und einen Musikplayer.',
+                    pcLabel: 'Dieser PC',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Version: 3.0.0.0</p><p>Release: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Webseite besuchen</a></p>',
+                    noApps: 'Keine Apps gefunden.'
+                },
+                'fr': {
+                    free: 'Gratuit', seeAll: 'Tout afficher', ratings: 'évaluations', avgRating: 'note moyenne',
+                    reviews: 'avis', review: 'avis', stars: ' étoiles', star: ' étoile',
+                    download: 'Télécharger', uninstall: 'Désinstaller', downloaded: 'téléchargé',
+                    init: 'Initialisation...', install: 'Installation...', toastMsg: ' a été téléchargé.',
+                    dlEmpty: "Vous n'avez pas encore téléchargé d'applications.",
+                    dlInstalledOn: 'Téléchargée le', dlUpdateAvailable: 'Mise à jour disponible',
+                    sidebarEnable: 'Activer la barre latérale', sidebarDisable: 'Désactiver la barre latérale',
+                    publishedBy: 'Publié par', category: 'Catégorie', approxSize: 'Taille approximative',
+                    os: 'Système d\'exploitation', architecture: 'Architecture',
+                    contentRating: 'Classification du contenu :', description: 'Description',
+                    tags: 'Mots-clés', update: 'Mettre à jour',
+                    defaultTheme: 'Défaut', official: 'Thème officiel', export: 'Exporter',
+                    edit: 'Modifier', delete: 'Supprimer', create: 'Créer un thème', import: 'Importer',
+                    shop: 'Boutique', closeShop: 'Fermer', installed: 'Installé',
+                    addPayment: 'Ajouter un mode de paiement', removePayment: 'Supprimer',
+                    editPayment: 'Modifier le mode de paiement', security: 'Sécurité',
+                    alwaysAsk: 'Toujours demander le mot de passe lors de l\'achat',
+                    yes: 'Oui', no: 'Non', yourPCs: 'Vos PC', thisPC: 'Ce PC',
+                    account: 'Votre compte', changeTheme: 'Changer le thème',
+                    changeLang: 'Changer la langue', about: 'À propos de Rework Webstore',
+                    paymentInfo: 'Informations de paiement',
+                    paymentStatus: 'Avant de pouvoir acheter une application, vous devez ajouter un mode de paiement.',
+                    sidebarInfo: 'La barre latérale vous donne un accès rapide à la navigation, aux notes et à un lecteur de musique.',
+                    dlHistory: 'Historique des téléchargements',
+                    dlHistoryInfo: 'Ici vous pouvez voir vos applications que vous avez téléchargées depuis le Rework Webstore.',
+                    cardNumber: 'Numéro de carte (xxxx xxxx xxxx xxxx)',
+                    submit: 'Valider', cancel: 'Annuler', chooseLang: 'Choisissez votre langue',
+                    allApps: 'Toutes les applications', home: 'Accueil', categories: 'Catégories', charts: 'Palmarès',
+                    themes: 'Thèmes', accountLabel: 'Compte', search: 'Rechercher',
+                    spotlight: 'En vedette', reworkPicks: 'Sélections Rework', forYou: 'Pour vous',
+                    collections: 'Collections', topCharts: 'Top charts',
+                    ratingsTitle: 'Notes et avis', seeAllReviews: 'Voir tout',
+                    legalText: 'En installant une application, vous acceptez les <span>Conditions d\'utilisation</span> et toutes <span>conditions supplémentaires</span>.<br><br>Cette application est <span>autorisée</span> à utiliser certaines fonctionnalités de votre PC.',
+                    themeCreator: 'Créateur de thèmes', themeName: 'Nom du thème :',
+                    themeImg: 'URL de l\'image de fond :', themeBg: 'Couleur de fond :',
+                    themeText: 'Couleur du texte :', themeTopbar: 'Couleur TopBar :',
+                    themeTopbarText: 'Couleur texte TopBar :', themeSearchBar: 'Couleur barre de recherche :',
+                    themeSearchIcon: 'Couleur icône recherche :', themeFont: 'Police :',
+                    hideTopbar: 'Masquer TopBar (clic droit pour afficher)',
+                    saveApply: 'Enregistrer & appliquer', cancelBtn: 'Annuler',
+                    createTheme: 'Créer un thème', importTheme: 'Importer',
+                    shopTitle: 'Boutique de thèmes', closeShopBtn: 'Fermer',
+                    paymentTitle: 'Informations de paiement',
+                    securityTitle: 'Sécurité', pcsTitle: 'Vos PC',
+                    dlHistoryTitle: 'Historique des téléchargements', sidebarTitle: 'Barre latérale',
+                    sidebarDesc: 'La barre latérale vous donne un accès rapide à la navigation, aux notes et à un lecteur de musique.',
+                    pcLabel: 'Ce PC',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Version: 3.0.0.0</p><p>Release: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Visiter le site</a></p>',
+                    noApps: 'Aucune application trouvée.'
+                },
+                'es': {
+                    free: 'Gratis', seeAll: 'Ver todo', ratings: 'calificaciones', avgRating: 'calificación promedio',
+                    reviews: 'opiniones', review: 'opinión', stars: ' estrellas', star: ' estrella',
+                    download: 'Descargar', uninstall: 'Desinstalar', downloaded: 'descargado',
+                    init: 'Inicializando...', install: 'Instalando...', toastMsg: ' se ha descargado.',
+                    dlEmpty: "Aún no has descargado ninguna aplicación.",
+                    dlInstalledOn: 'Descargado el', dlUpdateAvailable: 'Actualización disponible',
+                    sidebarEnable: 'Activar barra lateral', sidebarDisable: 'Desactivar barra lateral',
+                    publishedBy: 'Publicado por', category: 'Categoría', approxSize: 'Tamaño aproximado',
+                    os: 'Sistema operativo', architecture: 'Arquitectura',
+                    contentRating: 'Calificación de contenido:', description: 'Descripción',
+                    tags: 'Etiquetas', update: 'Actualizar',
+                    defaultTheme: 'Predeterminado', official: 'Tema oficial', export: 'Exportar',
+                    edit: 'Editar', delete: 'Eliminar', create: 'Crear tema', import: 'Importar',
+                    shop: 'Tienda', closeShop: 'Cerrar', installed: 'Instalado',
+                    addPayment: 'Añadir método de pago', removePayment: 'Eliminar',
+                    editPayment: 'Editar método de pago', security: 'Seguridad',
+                    alwaysAsk: 'Pedir siempre la contraseña al comprar',
+                    yes: 'Sí', no: 'No', yourPCs: 'Tus PCs', thisPC: 'Este PC',
+                    account: 'Tu cuenta', changeTheme: 'Cambiar tema',
+                    changeLang: 'Cambiar idioma', about: 'Acerca de Rework Webstore',
+                    paymentInfo: 'Información de pago',
+                    paymentStatus: 'Antes de comprar, debes añadir un método de pago.',
+                    sidebarInfo: 'La barra lateral te da acceso rápido a la navegación, notas y un reproductor de música.',
+                    dlHistory: 'Historial de descargas',
+                    dlHistoryInfo: 'Aquí puedes ver tus aplicaciones que has descargado desde Rework Webstore.',
+                    cardNumber: 'Número de tarjeta (xxxx xxxx xxxx xxxx)',
+                    submit: 'Enviar', cancel: 'Cancelar', chooseLang: 'Elige tu idioma',
+                    allApps: 'Todas las aplicaciones', home: 'Inicio', categories: 'Categorías', charts: 'Principales',
+                    themes: 'Temas', accountLabel: 'Cuenta', search: 'Buscar',
+                    spotlight: 'Destacados', reworkPicks: 'Selecciones Rework', forYou: 'Para ti',
+                    collections: 'Colecciones', topCharts: 'Top charts',
+                    ratingsTitle: 'Calificaciones y opiniones', seeAllReviews: 'Ver todo',
+                    legalText: 'Al instalar una aplicación, aceptas las <span>Condiciones de uso</span> y cualquier <span>condición adicional</span>.<br><br>Esta aplicación tiene <span>permiso</span> para usar algunas funciones de tu PC.',
+                    themeCreator: 'Creador de temas', themeName: 'Nombre del tema:',
+                    themeImg: 'URL de imagen de fondo:', themeBg: 'Color de fondo:',
+                    themeText: 'Color de texto:', themeTopbar: 'Color TopBar:',
+                    themeTopbarText: 'Color texto TopBar:', themeSearchBar: 'Color barra de búsqueda:',
+                    themeSearchIcon: 'Color icono búsqueda:', themeFont: 'Fuente:',
+                    hideTopbar: 'Ocultar TopBar (clic derecho para mostrar)',
+                    saveApply: 'Guardar y aplicar', cancelBtn: 'Cancelar',
+                    createTheme: 'Crear tema', importTheme: 'Importar',
+                    shopTitle: 'Tienda de temas', closeShopBtn: 'Cerrar',
+                    paymentTitle: 'Información de pago',
+                    securityTitle: 'Seguridad', pcsTitle: 'Tus PCs',
+                    dlHistoryTitle: 'Historial de descargas', sidebarTitle: 'Barra lateral',
+                    sidebarDesc: 'La barra lateral te da acceso rápido a la navegación, notas y un reproductor de música.',
+                    pcLabel: 'Este PC',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Versión: 3.0.0.0</p><p>Release: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Visitar sitio web</a></p>',
+                    noApps: 'No se encontraron aplicaciones.'
+                },
+                'tr': {
+                    free: 'Ücretsiz', seeAll: 'Tümünü gör', ratings: 'derecelendirme', avgRating: 'ortalama puan',
+                    reviews: 'inceleme', review: 'inceleme', stars: ' yıldız', star: ' yıldız',
+                    download: 'İndir', uninstall: 'Kaldır', downloaded: 'indirildi',
+                    init: 'Başlatılıyor...', install: 'Yükleniyor...', toastMsg: ' indirildi.',
+                    dlEmpty: "Henüz hiç uygulama indirmediniz.",
+                    dlInstalledOn: 'İndirilme tarihi', dlUpdateAvailable: 'Güncelleme mevcut',
+                    sidebarEnable: 'Kenar çubuğunu etkinleştir', sidebarDisable: 'Kenar çubuğunu devre dışı bırak',
+                    publishedBy: 'Yayınlayan', category: 'Kategori', approxSize: 'Yaklaşık boyut',
+                    os: 'İşletim Sistemi', architecture: 'Mimari',
+                    contentRating: 'İçerik Derecelendirmesi:', description: 'Açıklama',
+                    tags: 'Etiketler', update: 'Güncelle',
+                    defaultTheme: 'Varsayılan', official: 'Resmi Tema', export: 'Dışa Aktar',
+                    edit: 'Düzenle', delete: 'Sil', create: 'Tema Oluştur', import: 'İçe Aktar',
+                    shop: 'Tema-Mağazası', closeShop: 'Kapat', installed: 'Yüklendi',
+                    addPayment: 'Ödeme yöntemi ekle', removePayment: 'Kaldır',
+                    editPayment: 'Ödeme yöntemini düzenle', security: 'Güvenlik',
+                    alwaysAsk: 'Uygulama satın alırken her zaman şifre sor',
+                    yes: 'Evet', no: 'Hayır', yourPCs: 'Bilgisayarlarınız', thisPC: 'Bu bilgisayar',
+                    account: 'Hesabınız', changeTheme: 'Temayı Değiştir',
+                    changeLang: 'Dili Değiştir', about: 'Rework Webstore Hakkında',
+                    paymentInfo: 'Ödeme ve fatura bilgileri',
+                    paymentStatus: 'Bir uygulama satın almadan önce bir ödeme yöntemi eklemeniz gerekir.',
+                    sidebarInfo: 'Kenar çubuğu gezinme, notlar ve müzik çaları hızlıca açmanızı sağlar.',
+                    dlHistory: 'İndirme Geçmişi',
+                    dlHistoryInfo: 'Burada Rework Webstore\'dan indirdiğiniz uygulamalarınızı görebilirsiniz.',
+                    cardNumber: 'Kart numarası (xxxx xxxx xxxx xxxx)',
+                    submit: 'Gönder', cancel: 'İptal', chooseLang: 'Dilinizi seçin',
+                    allApps: 'Tüm Uygulamalar', home: 'Ana Sayfa', categories: 'Kategoriler', charts: 'En iyiler',
+                    themes: 'Temalar', accountLabel: 'Hesap', search: 'Ara',
+                    spotlight: 'Öne Çıkanlar', reworkPicks: 'Rework seçkileri', forYou: 'Sizin için',
+                    collections: 'Koleksiyonlar', topCharts: 'Top listeler',
+                    ratingsTitle: 'Derecelendirmeler ve incelemeler', seeAllReviews: 'Tümünü gör',
+                    legalText: 'Bir uygulamayı yüklediğinizde, <span>Kullanım Koşullarını</span> ve tüm <span>ek koşulları</span> kabul etmiş olursunuz.<br><br>Bu uygulama, bilgisayarınızın bazı özelliklerini kullanma <span>iznine</span> sahiptir.',
+                    themeCreator: 'Tema Oluşturucu', themeName: 'Tema Adı:',
+                    themeImg: 'Arka Plan Resmi URL:', themeBg: 'Arka Plan Rengi:',
+                    themeText: 'Metin Rengi:', themeTopbar: 'TopBar Rengi:',
+                    themeTopbarText: 'TopBar Metin Rengi:', themeSearchBar: 'Arama Çubuğu Rengi:',
+                    themeSearchIcon: 'Arama Simgesi Rengi:', themeFont: 'Yazı Tipi:',
+                    hideTopbar: 'TopBar\'ı gizle (göstermek için sağ tıklayın)',
+                    saveApply: 'Kaydet ve Uygula', cancelBtn: 'İptal',
+                    createTheme: 'Tema Oluştur', importTheme: 'İçe Aktar',
+                    shopTitle: 'Tema-Mağazası', closeShopBtn: 'Kapat',
+                    paymentTitle: 'Ödeme ve fatura bilgileri',
+                    securityTitle: 'Güvenlik', pcsTitle: 'Bilgisayarlarınız',
+                    dlHistoryTitle: 'İndirme Geçmişi', sidebarTitle: 'Kenar çubuğu',
+                    sidebarDesc: 'Kenar çubuğu gezinme, notlar ve müzik çaları hızlıca açmanızı sağlar.',
+                    pcLabel: 'Bu bilgisayar',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Sürüm: 3.0.0.0</p><p>Sürüm: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Web sitesini ziyaret et</a></p>',
+                    noApps: 'Uygulama bulunamadı.'
+                },
+                'ru': {
+                    free: 'Бесплатно', seeAll: 'Показать все', ratings: 'оценок', avgRating: 'средняя оценка',
+                    reviews: 'отзывов', review: 'отзыв', stars: ' звезд', star: ' звезда',
+                    download: 'Скачать', uninstall: 'Удалить', downloaded: 'скачано',
+                    init: 'Инициализация...', install: 'Установка...', toastMsg: ' загружено.',
+                    dlEmpty: "Вы ещё не загружали приложений.",
+                    dlInstalledOn: 'Загружено', dlUpdateAvailable: 'Доступно обновление',
+                    sidebarEnable: 'Включить боковую панель', sidebarDisable: 'Отключить боковую панель',
+                    publishedBy: 'Опубликовано', category: 'Категория', approxSize: 'Приблизительный размер',
+                    os: 'Операционная система', architecture: 'Архитектура',
+                    contentRating: 'Возрастной рейтинг:', description: 'Описание',
+                    tags: 'Теги', update: 'Обновить',
+                    defaultTheme: 'По умолчанию', official: 'Официальная тема', export: 'Экспорт',
+                    edit: 'Изменить', delete: 'Удалить', create: 'Создать тему', import: 'Импорт',
+                    shop: 'Магазин тем', closeShop: 'Закрыть', installed: 'Установлено',
+                    addPayment: 'Добавить способ оплаты', removePayment: 'Удалить',
+                    editPayment: 'Изменить способ оплаты', security: 'Безопасность',
+                    alwaysAsk: 'Всегда запрашивать пароль при покупке приложения',
+                    yes: 'Да', no: 'Нет', yourPCs: 'Ваши ПК', thisPC: 'Этот ПК',
+                    account: 'Ваша учетная запись', changeTheme: 'Изменить тему',
+                    changeLang: 'Изменить язык', about: 'О Rework Webstore',
+                    paymentInfo: 'Платежная информация',
+                    paymentStatus: 'Прежде чем вы сможете купить приложение, необходимо добавить способ оплаты.',
+                    sidebarInfo: 'Боковая панель обеспечивает быстрый доступ к навигации, заметкам и музыкальному плееру.',
+                    dlHistory: 'История загрузок',
+                    dlHistoryInfo: 'Здесь вы можете видеть ваши приложения, загруженные из Rework Webstore.',
+                    cardNumber: 'Номер карты (xxxx xxxx xxxx xxxx)',
+                    submit: 'Отправить', cancel: 'Отмена', chooseLang: 'Выберите язык',
+                    allApps: 'Все приложения', home: 'Главная', categories: 'Категории', charts: 'Топ-чарты',
+                    themes: 'Темы', accountLabel: 'Аккаунт', search: 'Поиск',
+                    spotlight: 'Избранное', reworkPicks: 'Выбор Rework', forYou: 'Для вас',
+                    collections: 'Коллекции', topCharts: 'Топ чарты',
+                    ratingsTitle: 'Рейтинги и отзывы', seeAllReviews: 'Посмотреть все',
+                    legalText: 'Устанавливая приложение, вы соглашаетесь с <span>Условиями использования</span> и любыми <span>дополнительными условиями</span>.<br><br>Это приложение имеет <span>разрешение</span> на использование некоторых функций вашего ПК.',
+                    themeCreator: 'Редактор тем', themeName: 'Название темы:',
+                    themeImg: 'URL фонового изображения:', themeBg: 'Цвет фона:',
+                    themeText: 'Цвет текста:', themeTopbar: 'Цвет TopBar:',
+                    themeTopbarText: 'Цвет текста TopBar:', themeSearchBar: 'Цвет панели поиска:',
+                    themeSearchIcon: 'Цвет значка поиска:', themeFont: 'Шрифт:',
+                    hideTopbar: 'Скрыть TopBar (правый клик для показа)',
+                    saveApply: 'Сохранить и применить', cancelBtn: 'Отмена',
+                    createTheme: 'Создать тему', importTheme: 'Импорт',
+                    shopTitle: 'Магазин тем', closeShopBtn: 'Закрыть',
+                    paymentTitle: 'Платежная информация',
+                    securityTitle: 'Безопасность', pcsTitle: 'Ваши ПК',
+                    dlHistoryTitle: 'История загрузок', sidebarTitle: 'Боковая панель',
+                    sidebarDesc: 'Боковая панель обеспечивает быстрый доступ к навигации, заметкам и музыкальному плееру.',
+                    pcLabel: 'Этот ПК',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Версия: 3.0.0.0</p><p>Релиз: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Посетить сайт</a></p>',
+                    noApps: 'Приложения не найдены.'
+                },
+                'pl': {
+                    free: 'Bezpłatne', seeAll: 'Pokaż wszystko', ratings: 'ocen', avgRating: 'średnia ocena',
+                    reviews: 'recenzji', review: 'recenzja', stars: ' gwiazdek', star: ' gwiazdka',
+                    download: 'Pobierz', uninstall: 'Odinstaluj', downloaded: 'pobrano',
+                    init: 'Inicjowanie...', install: 'Instalowanie...', toastMsg: ' został pobrany.',
+                    dlEmpty: "Nie pobrano jeszcze żadnych aplikacji.",
+                    dlInstalledOn: 'Pobrano', dlUpdateAvailable: 'Aktualizacja dostępna',
+                    sidebarEnable: 'Włącz pasek boczny', sidebarDisable: 'Wyłącz pasek boczny',
+                    publishedBy: 'Opublikowane przez', category: 'Kategoria', approxSize: 'Przybliżony rozmiar',
+                    os: 'System operacyjny', architecture: 'Architektura',
+                    contentRating: 'Klasyfikacja treści:', description: 'Opis',
+                    tags: 'Tagi', update: 'Aktualizuj',
+                    defaultTheme: 'Domyślny', official: 'Oficjalny motyw', export: 'Eksportuj',
+                    edit: 'Edytuj', delete: 'Usuń', create: 'Utwórz motyw', import: 'Importuj',
+                    shop: 'Sklep z motywami', closeShop: 'Zamknij', installed: 'Zainstalowano',
+                    addPayment: 'Dodaj metodę płatności', removePayment: 'Usuń',
+                    editPayment: 'Edytuj metodę płatności', security: 'Bezpieczeństwo',
+                    alwaysAsk: 'Zawsze pytaj o hasło podczas kupowania aplikacji',
+                    yes: 'Tak', no: 'Nie', yourPCs: 'Twoje komputery', thisPC: 'Ten komputer',
+                    account: 'Twoje konto', changeTheme: 'Zmień motyw',
+                    changeLang: 'Zmień język', about: 'O Rework Webstore',
+                    paymentInfo: 'Informacje o płatnościach',
+                    paymentStatus: 'Zanim kupisz aplikację, musisz dodać metodę płatności.',
+                    sidebarInfo: 'Pasek boczny zapewnia szybki dostęp do nawigacji, notatek i odtwarzacza muzyki.',
+                    dlHistory: 'Historia pobierania',
+                    dlHistoryInfo: 'Tutaj możesz zobaczyć swoje aplikacje pobrane z Rework Webstore.',
+                    cardNumber: 'Numer karty (xxxx xxxx xxxx xxxx)',
+                    submit: 'Wyślij', cancel: 'Anuluj', chooseLang: 'Wybierz język',
+                    allApps: 'Wszystkie aplikacje', home: 'Strona główna', categories: 'Kategorie', charts: 'Top listy',
+                    themes: 'Motywy', accountLabel: 'Konto', search: 'Szukaj',
+                    spotlight: 'Na pierwszym planie', reworkPicks: 'Wybór Rework', forYou: 'Dla Ciebie',
+                    collections: 'Kolekcje', topCharts: 'Top listy',
+                    ratingsTitle: 'Oceny i recenzje', seeAllReviews: 'Zobacz wszystkie',
+                    legalText: 'Instalując aplikację, akceptujesz <span>Warunki użytkowania</span> i wszelkie <span>dodatkowe warunki</span>.<br><br>Ta aplikacja ma <span>uprawnienia</span> do korzystania z niektórych funkcji komputera.',
+                    themeCreator: 'Kreator motywów', themeName: 'Nazwa motywu:',
+                    themeImg: 'URL obrazu tła:', themeBg: 'Kolor tła:',
+                    themeText: 'Kolor tekstu:', themeTopbar: 'Kolor TopBar:',
+                    themeTopbarText: 'Kolor tekstu TopBar:', themeSearchBar: 'Kolor paska wyszukiwania:',
+                    themeSearchIcon: 'Kolor ikony wyszukiwania:', themeFont: 'Styl czcionki:',
+                    hideTopbar: 'Ukryj TopBar (kliknij prawym przyciskiem, aby pokazać)',
+                    saveApply: 'Zapisz i zastosuj', cancelBtn: 'Anuluj',
+                    createTheme: 'Utwórz motyw', importTheme: 'Importuj',
+                    shopTitle: 'Sklep z motywami', closeShopBtn: 'Zamknij',
+                    paymentTitle: 'Informacje o płatnościach',
+                    securityTitle: 'Bezpieczeństwo', pcsTitle: 'Twoje komputery',
+                    dlHistoryTitle: 'Historia pobierania', sidebarTitle: 'Pasek boczny',
+                    sidebarDesc: 'Pasek boczny zapewnia szybki dostęp do nawigacji, notatek i odtwarzacza muzyki.',
+                    pcLabel: 'Ten komputer',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Wersja: 3.0.0.0</p><p>Wydanie: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Odwiedź stronę</a></p>',
+                    noApps: 'Nie znaleziono aplikacji.'
+                },
+                'ro': {
+                    free: 'Gratuit', seeAll: 'Vezi tot', ratings: 'evaluări', avgRating: 'evaluare medie',
+                    reviews: 'recenzii', review: 'recenzie', stars: ' stele', star: ' stea',
+                    download: 'Descărcare', uninstall: 'Dezinstalare', downloaded: 'descărcat',
+                    init: 'Se inițializează...', install: 'Se instalează...', toastMsg: ' a fost descărcat.',
+                    dlEmpty: "Nu ai descărcat nicio aplicație încă.",
+                    dlInstalledOn: 'Descărcat la', dlUpdateAvailable: 'Actualizare disponibilă',
+                    sidebarEnable: 'Activează bara laterală', sidebarDisable: 'Dezactivează bara laterală',
+                    publishedBy: 'Publicat de', category: 'Categorie', approxSize: 'Dimensiune aproximativă',
+                    os: 'Sistem de operare', architecture: 'Arhitectură',
+                    contentRating: 'Evaluarea conținutului:', description: 'Descriere',
+                    tags: 'Etichete', update: 'Actualizează',
+                    defaultTheme: 'Implicit', official: 'Temă oficială', export: 'Exportă',
+                    edit: 'Editează', delete: 'Șterge', create: 'Creează temă', import: 'Importă',
+                    shop: 'Magazin teme', closeShop: 'Închide', installed: 'Instalat',
+                    addPayment: 'Adaugă metodă de plată', removePayment: 'Elimină',
+                    editPayment: 'Editează metoda de plată', security: 'Securitate',
+                    alwaysAsk: 'Cere întotdeauna parola la cumpărarea unei aplicații',
+                    yes: 'Da', no: 'Nu', yourPCs: 'PC-urile tale', thisPC: 'Acest PC',
+                    account: 'Contul tău', changeTheme: 'Schimbă tema',
+                    changeLang: 'Schimbă limba', about: 'Despre Rework Webstore',
+                    paymentInfo: 'Informații de plată',
+                    paymentStatus: 'Înainte de a cumpăra o aplicație, trebuie să adăugați o metodă de plată.',
+                    sidebarInfo: 'Bara laterală oferă acces rapid la navigare, notițe și un player de muzică.',
+                    dlHistory: 'Istoric descărcări',
+                    dlHistoryInfo: 'Aici poți vedea aplicațiile tale descărcate din Rework Webstore.',
+                    cardNumber: 'Număr card (xxxx xxxx xxxx xxxx)',
+                    submit: 'Trimite', cancel: 'Anulează', chooseLang: 'Alege limba',
+                    allApps: 'Toate aplicațiile', home: 'Acasă', categories: 'Categorii', charts: 'Topuri',
+                    themes: 'Teme', accountLabel: 'Cont', search: 'Căutare',
+                    spotlight: 'Spotlight', reworkPicks: 'Selecții Rework', forYou: 'Pentru tine',
+                    collections: 'Colecții', topCharts: 'Top chart-uri',
+                    ratingsTitle: 'Evaluări și recenzii', seeAllReviews: 'Vezi tot',
+                    legalText: 'Când instalezi o aplicație, ești de acord cu <span>Termenii de utilizare</span> și cu orice <span>termeni suplimentari</span>.<br><br>Această aplicație are <span>permisiunea</span> de a utiliza unele funcții ale computerului tău.',
+                    themeCreator: 'Creator teme', themeName: 'Nume temă:',
+                    themeImg: 'URL imagine fundal:', themeBg: 'Culoare fundal:',
+                    themeText: 'Culoare text:', themeTopbar: 'Culoare TopBar:',
+                    themeTopbarText: 'Culoare text TopBar:', themeSearchBar: 'Culoare bară de căutare:',
+                    themeSearchIcon: 'Culoare pictogramă căutare:', themeFont: 'Stil font:',
+                    hideTopbar: 'Ascunde TopBar (clic dreapta pentru afișare)',
+                    saveApply: 'Salvează și aplică', cancelBtn: 'Anulează',
+                    createTheme: 'Creează temă', importTheme: 'Importă',
+                    shopTitle: 'Magazin teme', closeShopBtn: 'Închide',
+                    paymentTitle: 'Informații de plată',
+                    securityTitle: 'Securitate', pcsTitle: 'PC-urile tale',
+                    dlHistoryTitle: 'Istoric descărcări', sidebarTitle: 'Bară laterală',
+                    sidebarDesc: 'Bara laterală oferă acces rapid la navigare, notițe și un player de muzică.',
+                    pcLabel: 'Acest PC',
+                    aboutContent: '<p style="font-size:18px;font-weight:300;">Rework Webstore</p><p>Versiune: 3.0.0.0</p><p>Release: 13 Beta</p><p><a href="https://w-8-1-projects.github.io/Rework-Store-Revived/status" target="_blank" style="color:#008a00;">Vizitează site-ul</a></p>',
+                    noApps: 'Nu s-au găsit aplicații.'
+                }
+            };
+
+            function getLang() {
+                return LANG;
+            }
+
+            function t(key) {
+                var trans = T[getLang()];
+                if (trans && trans[key] !== undefined) return trans[key];
+                return (T['en'] && T['en'][key]) || key;
+            }
+
+            // ---- HELPERS ----
+            function getXhr(url, cb) {
+                var x = new XMLHttpRequest();
+                x.open('GET', url, true);
+                x.onload = function() { if (x.status === 200) cb(x.responseText); };
+                x.onerror = function() { cb(null); };
+                x.send();
+            }
+
+            function getJson(url, cb) {
+                getXhr(url, function(txt) {
+                    try { cb(JSON.parse(txt)); } catch (e) { cb(null); }
+                });
+            }
+
+            function starsHtml(count) {
+                var s = '';
+                for (var i = 0; i < 5; i++) s += (i < count) ? '★' : '☆';
+                return s;
+            }
+
+            function formatDate(ts) {
+                var d = new Date(ts);
+                var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+                var dd = ('0' + d.getDate()).slice(-2);
+                var yyyy = d.getFullYear();
+                return mm + '/' + dd + '/' + yyyy;
+            }
+
+            function getQueryParam(name) {
+                var r = new RegExp('[\\?&]' + name + '=([^&#]*)').exec(location.search);
+                return r ? decodeURIComponent(r[1]) : null;
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            // ---- DOWNLOAD HISTORY ----
+            function getDownloadHistory() {
+                try { return JSON.parse(localStorage.getItem(DOWNLOAD_HISTORY_KEY) || '[]'); } catch (e) { return []; }
+            }
+
+            function saveDownloadHistory(h) {
+                localStorage.setItem(DOWNLOAD_HISTORY_KEY, JSON.stringify(h));
+            }
+
+            function isAppDownloaded(name) {
+                var h = getDownloadHistory();
+                for (var i = 0; i < h.length; i++) {
+                    if (h[i].name === name) return true;
+                }
+                return false;
+            }
+
+            function addToDownloadHistory(name, img, uri, version) {
+                var h = getDownloadHistory();
+                var found = false;
+                var now = Date.now();
+                for (var i = 0; i < h.length; i++) {
+                    if (h[i].name === name) {
+                        h[i].updatedAt = now;
+                        h[i].hasUpdate = false;
+                        if (img) h[i].img = img;
+                        if (uri) h[i].uri = uri;
+                        if (version) h[i].version = version;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    h.push({ name: name, img: img || '', uri: uri || '', version: version || '', downloadedAt: now,
+                        updatedAt: now, hasUpdate: false });
+                }
+                saveDownloadHistory(h);
+            }
+
+            function removeFromDownloadHistory(name) {
+                var h = getDownloadHistory();
+                h = h.filter(function(e) { return e.name !== name; });
+                saveDownloadHistory(h);
+            }
+
+            // ---- THEMES ----
+            function getThemes() {
+                try { return JSON.parse(localStorage.getItem(THEMES_KEY) || '[]'); } catch (e) { return []; }
+            }
+
+            function saveThemes(t) {
+                localStorage.setItem(THEMES_KEY, JSON.stringify(t));
+            }
+
+            function getActiveTheme() {
+                try { var s = localStorage.getItem(ACTIVE_THEME_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+            }
+
+            function setActiveTheme(t) {
+                if (t === 'default') {
+                    localStorage.removeItem(ACTIVE_THEME_KEY);
+                } else {
+                    localStorage.setItem(ACTIVE_THEME_KEY, JSON.stringify(t));
+                }
+                applyThemeToUI(t);
+            }
+
+            function applyThemeToUI(t) {
+                var container = document.getElementById('pageContainer');
+                if (t === 'default' || !t) {
+                    container.style.backgroundColor = '#f2f2f2';
+                    container.style.backgroundImage = 'none';
+                    container.style.color = '#000';
+                    container.style.fontFamily = "'Segoe UI', sans-serif";
+                    document.getElementById('topBarContainer').style.background = '#008a00';
+                    document.getElementById('topBarContainer').style.color = '#fff';
+                    return;
+                }
+                container.style.backgroundColor = t.bg || '#f2f2f2';
+                container.style.backgroundImage = t.img ? 'url(' + t.img + ')' : 'none';
+                container.style.backgroundSize = 'cover';
+                container.style.backgroundAttachment = 'fixed';
+                container.style.backgroundPosition = 'center';
+                container.style.color = t.text || '#000';
+                container.style.fontFamily = t.font || "'Segoe UI', sans-serif";
+                if (t.topbar) {
+                    document.getElementById('topBarContainer').style.background = t.topbar;
+                }
+                if (t.topbarText) {
+                    document.getElementById('topBarContainer').style.color = t.topbarText;
+                    var links = document.querySelectorAll('#topBarContainer .nav-link, #topBarContainer .logo-home-container, #topBarContainer .right-actions');
+                    links.forEach(function(el) { el.style.color = t.topbarText; });
+                }
+                if (t.hideTopbar) {
+                    document.getElementById('topBarContainer').classList.add('topbar-hidden');
+                } else {
+                    document.getElementById('topBarContainer').classList.remove('topbar-hidden');
+                }
+            }
+
+            // ---- NAVIGATION ----
+            var currentPage = 'home';
+
+            function navigateTo(page, data) {
+                currentPage = page;
+                var pages = document.querySelectorAll('#pageContainer .page');
+                pages.forEach(function(p) { p.classList.remove('active'); });
+                var target = document.getElementById('page-' + page);
+                if (target) {
+                    target.classList.add('active');
+                    target.scrollTop = 0;
+                }
+                // Update URL hash
+                if (page === 'home') {
+                    history.pushState(null, '', '#');
+                } else if (page === 'app' && data && data.title) {
+                    history.pushState(null, '', '#app=' + encodeURIComponent(data.title));
+                } else {
+                    history.pushState(null, '', '#' + page);
+                }
+                // Re-trigger animations
+                var anims = target ? target.querySelectorAll('.win8-anim') : [];
+                anims.forEach(function(el, idx) {
+                    el.style.animation = 'none';
+                    setTimeout(function() {
+                        el.style.animation = '';
+                        el.style.animationDelay = (idx * 0.04) + 's';
+                    }, 20);
+                });
+                // Close modals
+                document.getElementById('modalOverlay').classList.remove('active');
+                // Update top bar active link
+                document.querySelectorAll('#topBarContainer .nav-link[data-page]').forEach(function(el) {
+                    el.style.fontWeight = (el.dataset.page === page) ? '600' : '400';
+                });
+            }
+
+            // ---- SHOW TOAST (browser) ----
+            function showToast(message) {
+                console.log('[Toast]', message);
+                // Use a simple notification if available
+                if (window.Notification && Notification.permission === 'granted') {
+                    new Notification('Rework Webstore', { body: message });
+                } else {
+                    // Fallback: show a small banner
+                    var toast = document.createElement('div');
+                    toast.style.cssText =
+                        'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 28px;border-radius:6px;z-index:999;font-family:Segoe UI,sans-serif;font-size:15px;box-shadow:0 4px 16px rgba(0,0,0,0.3);animation:fadeIn 0.3s ease;';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    setTimeout(function() { toast.style.opacity = '0';
+                        toast.style.transition = 'opacity 0.4s';
+                        setTimeout(function() { toast.remove(); }, 500); }, 3000);
+                }
+            }
+
+            // ---- MODAL ----
+            function showModal(title, bodyHtml, confirmText, confirmCb) {
+                var overlay = document.getElementById('modalOverlay');
+                document.getElementById('modalTitle').textContent = title || 'Modal';
+                document.getElementById('modalBody').innerHTML = bodyHtml || '';
+                document.getElementById('modalConfirm').textContent = confirmText || 'OK';
+                overlay.classList.add('active');
+                var confirmBtn = document.getElementById('modalConfirm');
+                var cancelBtn = document.getElementById('modalCancel');
+                var newConfirm = function() {
+                    overlay.classList.remove('active');
+                    if (confirmCb) confirmCb();
+                };
+                var newCancel = function() {
+                    overlay.classList.remove('active');
+                };
+                confirmBtn.onclick = newConfirm;
+                cancelBtn.onclick = newCancel;
+                // Close on overlay click
+                overlay.onclick = function(e) {
+                    if (e.target === overlay) { overlay.classList.remove('active'); }
+                };
+            }
+
+            // ---- GET DEVICE NAME ----
+            function getDeviceName() {
+                try {
+                    if (window.Windows && Windows.Security && Windows.Security.ExchangeActiveSyncProvisioning &&
+                        Windows.Security.ExchangeActiveSyncProvisioning.EasClientDeviceInformation) {
+                        var info = new Windows.Security.ExchangeActiveSyncProvisioning.EasClientDeviceInformation();
+                        return info.friendlyName || 'This PC';
+                    }
+                } catch (e) {}
+                return 'This PC';
+            }
+
+            // ---- GET USER NAME ----
+            function getUserName() {
+                try {
+                    if (window.Windows && Windows.System && Windows.System.UserProfile &&
+                        Windows.System.UserProfile.UserInformation) {
+                        return Windows.System.UserProfile.UserInformation.getDisplayNameAsync().then(function(name) {
+                            return name || 'User';
+                        });
+                    }
+                } catch (e) {}
+                return Promise.resolve('User');
+            }
+
+
+            // ========================================================================
+            //  PAGE RENDERERS
+            // ========================================================================
+
+            // ---- HOME ----
+            var spotlightData = [];
+            var spotlightIndex = 0;
+            var spotlightInterval = null;
+
+            function renderHome(data) {
+                var layout = document.getElementById('homeLayout');
+                if (!data) return;
+
+                // Update labels with translations
+                document.getElementById('spotlightLabel').textContent = t('spotlight');
+                document.getElementById('picksLabel').innerHTML = t('reworkPicks') + ' <span class="see-all" data-page="categories" id="picksSeeAll">' + t('seeAll') + '</span>';
+                document.getElementById('foryouLabel').textContent = t('forYou');
+                document.getElementById('collectionsLabel').innerHTML = t('collections') + ' <span class="see-all" data-page="categories" id="collectionsSeeAll">' + t('seeAll') + '</span>';
+
+                // Spotlight
+                var spotlight = data.rework_core_system && data.rework_core_system.content_registry &&
+                    data.rework_core_system.content_registry.spotlight;
+                if (spotlight && spotlight.payload) {
+                    spotlightData = spotlight.payload.slice(0, 4);
+                    renderSpotlight(spotlightData);
+                }
+
+                // Collections
+                var collections = data.rework_core_system && data.rework_core_system.content_registry &&
+                    data.rework_core_system.content_registry.deployment_groups &&
+                    data.rework_core_system.content_registry.deployment_groups.collections_registry;
+                if (collections && collections.payload) {
+                    renderCollections(collections.payload);
+                }
+
+                // Rework Picks
+                var groups = data.rework_core_system && data.rework_core_system.content_registry &&
+                    data.rework_core_system.content_registry.deployment_groups;
+                if (groups) {
+                    var picksKey = 'rework_picks';
+                    if (groups[picksKey] && groups[picksKey].payload) {
+                        renderPicks(groups[picksKey].payload);
+                    }
+                    // For You - use picks + others
+                    var forYouPool = [];
+                    for (var key in groups) {
+                        if (key !== 'collections_registry' && groups[key].payload) {
+                            groups[key].payload.forEach(function(item) {
+                                forYouPool.push(item);
+                            });
+                        }
+                    }
+                    renderForYou(forYouPool);
+
+                    // Dynamic sections
+                    renderDynamicSections(groups);
+                }
+
+                // Sub count
+                var totalApps = 0;
+                if (groups) {
+                    for (var k in groups) {
+                        if (groups[k].payload) totalApps += groups[k].payload.length;
+                    }
+                }
+                document.getElementById('homeSubCount').textContent = totalApps + ' apps';
+            }
+
+            function renderSpotlight(items) {
+                var thumbs = document.getElementById('spotlightThumbs');
+                var mainImg = document.getElementById('spotlightImg');
+                var title = document.getElementById('spotTitle');
+                var desc = document.getElementById('spotDesc');
+                var stars = document.getElementById('spotStars');
+                var count = document.getElementById('spotCount');
+
+                thumbs.innerHTML = '';
+                items.forEach(function(item, idx) {
+                    var img = document.createElement('img');
+                    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="%23ddd"/%3E';
+                    img.alt = 'thumb';
+                    img.className = (idx === 0) ? 'active-thumb' : '';
+                    img.dataset.idx = idx;
+                    img.onclick = function() { showSpotlight(idx); };
+                    thumbs.appendChild(img);
+                    // Load app image
+                    var appName = item.label || item;
+                    getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                        if (app && app.imgUrl) {
+                            img.src = app.imgUrl;
+                        }
+                    });
+                });
+
+                function showSpotlight(idx) {
+                    if (spotlightInterval) clearInterval(spotlightInterval);
+                    spotlightIndex = idx;
+                    var item = items[idx];
+                    var appName = item.label || item;
+                    getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                        if (app) {
+                            var imgUrl = item.image_url || app.imgUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="500" height="260" fill="%23ddd"/%3E';
+                            mainImg.src = imgUrl;
+                            title.textContent = app.displayname || app.name || appName;
+                            desc.textContent = item.description || app.description || '';
+                            var s = parseInt(app.mainStars) || 0;
+                            stars.textContent = starsHtml(s);
+                            count.textContent = app.ratingsCount || 0;
+                            // Click to open app
+                            var main = document.getElementById('spotlightMain');
+                            main.onclick = function() {
+                                var name = app.displayname || app.name || appName;
+                                openAppPage(name, app);
+                            };
+                        }
+                    });
+                    // Update thumb active
+                    var imgs = thumbs.querySelectorAll('img');
+                    imgs.forEach(function(img, i) {
+                        img.className = (i === idx) ? 'active-thumb' : '';
+                    });
+                }
+
+                showSpotlight(0);
+                // Auto-rotate
+                if (spotlightInterval) clearInterval(spotlightInterval);
+                spotlightInterval = setInterval(function() {
+                    var next = (spotlightIndex + 1) % items.length;
+                    showSpotlight(next);
+                }, 6000);
+            }
+
+            function renderCollections(collections) {
+                var grid = document.getElementById('collectionsGrid');
+                grid.innerHTML = '';
+                collections.forEach(function(col, idx) {
+                    if (col.spacer) return;
+                    var card = document.createElement('div');
+                    card.className = 'collection-card win8-anim';
+                    card.style.animationDelay = (idx * 0.05) + 's';
+                    var imgs = '';
+                    var apps = col.apps || [];
+                    for (var i = 0; i < 4 && i < apps.length; i++) {
+                        var appName = apps[i].label || apps[i];
+                        imgs += '<img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="90" height="40" fill="%23ccc"/%3E" data-app="' +
+                            escapeHtml(appName) + '" />';
+                    }
+                    card.innerHTML = '<div class="coll-imgs">' + imgs + '</div><div class="coll-title">' + (col.title ||
+                        'Collection') + '</div>';
+                    card.onclick = function() {
+                        navigateTo('categories');
+                        setTimeout(function() { loadCategoryPage(col.title); }, 100);
+                    };
+                    grid.appendChild(card);
+                    // Load images
+                    var imgsEl = card.querySelectorAll('.coll-imgs img');
+                    apps.slice(0, 4).forEach(function(appName, j) {
+                        if (imgsEl[j]) {
+                            getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                                if (app && app.imgUrl) {
+                                    imgsEl[j].src = app.imgUrl;
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+
+            function renderPicks(items) {
+                var list = document.getElementById('picksList');
+                list.innerHTML = '';
+                var toShow = items.slice(0, 4);
+                toShow.forEach(function(item, idx) {
+                    var appName = item.label || item;
+                    var div = document.createElement('div');
+                    div.className = 'picks-item win8-anim';
+                    div.style.animationDelay = (idx * 0.06) + 's';
+                    div.innerHTML =
+                        '<div class="picks-icon"><img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="%23ddd"/%3E" /></div><div class="picks-info"><div class="picks-name">Loading...</div><div class="picks-price">' +
+                        t('free') + '</div><div class="picks-stars">☆☆☆☆☆</div><div class="picks-cat"></div></div>';
+                    list.appendChild(div);
+                    getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                        if (app) {
+                            var name = app.displayname || app.name || appName;
+                            div.querySelector('.picks-name').textContent = name;
+                            div.querySelector('.picks-price').textContent = t('free');
+                            div.querySelector('.picks-stars').textContent = starsHtml(parseInt(app.mainStars) || 0);
+                            div.querySelector('.picks-cat').textContent = app.category || '';
+                            var icon = div.querySelector('.picks-icon img');
+                            if (app.imgUrl) icon.src = app.imgUrl;
+                            div.onclick = function() { openAppPage(name, app); };
+                        }
+                    });
+                });
+            }
+
+            function renderForYou(items) {
+                var list = document.getElementById('forYouList');
+                list.innerHTML = '';
+                // Pick random 3
+                var shuffled = items.slice().sort(function() { return Math.random() - 0.5; });
+                var toShow = shuffled.slice(0, 3);
+                toShow.forEach(function(item, idx) {
+                    var appName = item.label || item;
+                    var div = document.createElement('div');
+                    div.className = 'picks-item win8-anim';
+                    div.style.animationDelay = (idx * 0.07 + 0.1) + 's';
+                    div.innerHTML =
+                        '<div class="picks-icon"><img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="%23ddd"/%3E" /></div><div class="picks-info"><div class="picks-name">Loading...</div><div class="picks-price">' +
+                        t('free') + '</div><div class="picks-stars">☆☆☆☆☆</div><div class="picks-cat"></div></div>';
+                    list.appendChild(div);
+                    getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                        if (app) {
+                            var name = app.displayname || app.name || appName;
+                            div.querySelector('.picks-name').textContent = name;
+                            div.querySelector('.picks-price').textContent = t('free');
+                            div.querySelector('.picks-stars').textContent = starsHtml(parseInt(app.mainStars) || 0);
+                            div.querySelector('.picks-cat').textContent = app.category || '';
+                            var icon = div.querySelector('.picks-icon img');
+                            if (app.imgUrl) icon.src = app.imgUrl;
+                            div.onclick = function() { openAppPage(name, app); };
+                        }
+                    });
+                });
+            }
+
+            function renderDynamicSections(groups) {
+                var container = document.getElementById('dynamicSections');
+                container.innerHTML = '';
+                var count = 0;
+                for (var key in groups) {
+                    if (key === 'collections_registry' || key === 'rework_picks') continue;
+                    var group = groups[key];
+                    if (!group.payload || group.payload.length === 0) continue;
+                    if (count >= 4) break;
+                    var col = document.createElement('div');
+                    col.className = 'home-col win8-anim';
+                    col.style.animationDelay = (count * 0.06 + 0.3) + 's';
+                    col.style.flex = '1 1 280px';
+                    var title = group.title || key;
+                    var seeAll = document.createElement('span');
+                    seeAll.className = 'see-all';
+                    seeAll.textContent = t('seeAll');
+                    seeAll.style.cursor = 'pointer';
+                    seeAll.style.fontSize = '14px';
+                    seeAll.style.color = '#008a00';
+                    seeAll.onclick = function() {
+                        navigateTo('categories');
+                        setTimeout(function() { loadCategoryPage(title); }, 100);
+                    };
+                    var h2 = document.createElement('h2');
+                    h2.textContent = title + ' ';
+                    h2.appendChild(seeAll);
+                    var grid = document.createElement('div');
+                    grid.className = 'app-tile-grid';
+                    var toShow = group.payload.slice(0, 6);
+                    toShow.forEach(function(item, idx) {
+                        var appName = item.label || item;
+                        var tile = document.createElement('div');
+                        tile.className = 'app-tile-item';
+                        tile.innerHTML =
+                            '<div class="tile-img"><img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="140" height="140" fill="%23ddd"/%3E" /></div><div class="tile-name">Loading...</div><div class="tile-price">' +
+                            t('free') + '</div><div class="tile-stars">☆☆☆☆☆</div><div class="tile-category"></div>';
+                        grid.appendChild(tile);
+                        getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                            if (app) {
+                                var name = app.displayname || app.name || appName;
+                                tile.querySelector('.tile-name').textContent = name;
+                                tile.querySelector('.tile-price').textContent = t('free');
+                                tile.querySelector('.tile-stars').textContent = starsHtml(parseInt(app
+                                .mainStars) || 0);
+                                tile.querySelector('.tile-category').textContent = app.category || '';
+                                var img = tile.querySelector('.tile-img img');
+                                if (app.imgUrl) img.src = app.imgUrl;
+                                tile.onclick = function() { openAppPage(name, app); };
+                            }
+                        });
+                    });
+                    col.appendChild(h2);
+                    col.appendChild(grid);
+                    container.appendChild(col);
+                    count++;
+                }
+            }
+
+
+            // ---- CATEGORIES ----
+            function renderCategories(data) {
+                var grid = document.getElementById('categoriesGrid');
+                grid.innerHTML = '';
+                var groups = data.rework_core_system && data.rework_core_system.content_registry &&
+                    data.rework_core_system.content_registry.deployment_groups;
+                if (!groups) return;
+                var cats = [];
+                for (var key in groups) {
+                    if (key === 'collections_registry') continue;
+                    var g = groups[key];
+                    if (g.payload && g.payload.length > 0) {
+                        cats.push({ key: key, title: g.title || key, payload: g.payload });
+                    }
+                }
+                document.getElementById('catSubCount').textContent = cats.length + ' categories';
+                cats.forEach(function(cat, idx) {
+                    var card = document.createElement('div');
+                    card.className = 'category-card win8-anim';
+                    card.style.animationDelay = (idx * 0.04) + 's';
+                    var imgs = '';
+                    var apps = cat.payload.slice(0, 4);
+                    for (var i = 0; i < 4; i++) {
+                        var appName = apps[i] && (apps[i].label || apps[i]) || '';
+                        imgs += '<img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="130" height="60" fill="%23ccc"/%3E" data-app="' +
+                            escapeHtml(appName) + '" />';
+                    }
+                    card.innerHTML = '<div class="cat-imgs">' + imgs + '</div><div class="cat-name">' + cat.title +
+                    '</div>';
+                    card.onclick = function() { loadCategoryPage(cat.title); };
+                    grid.appendChild(card);
+                    // Load images
+                    var imgsEl = card.querySelectorAll('.cat-imgs img');
+                    apps.slice(0, 4).forEach(function(item, j) {
+                        var appName = item.label || item;
+                        if (imgsEl[j]) {
+                            getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                                if (app && app.imgUrl) {
+                                    imgsEl[j].src = app.imgUrl;
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+
+            function loadCategoryPage(title) {
+                navigateTo('categories');
+                document.getElementById('catPageTitle').textContent = title;
+                var grid = document.getElementById('categoriesGrid');
+                grid.innerHTML = '<div style="padding:20px;">' + t('loading') + '...</div>';
+                getJson(MASTER_SERVER, function(data) {
+                    if (!data) { grid.innerHTML = '<div style="padding:20px;color:#999;">' + t('failedLoad') +
+                        '</div>'; return; }
+                    var groups = data.rework_core_system && data.rework_core_system.content_registry &&
+                        data.rework_core_system.content_registry.deployment_groups;
+                    if (!groups) return;
+                    var found = null;
+                    for (var key in groups) {
+                        if ((groups[key].title || key) === title) {
+                            found = groups[key];
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        grid.innerHTML = '<div style="padding:20px;color:#999;">' + t('notFound') + '</div>';
+                        return;
+                    }
+                    grid.innerHTML = '';
+                    document.getElementById('catSubCount').textContent = found.payload.length + ' apps';
+                    found.payload.forEach(function(item, idx) {
+                        var appName = item.label || item;
+                        var tile = document.createElement('div');
+                        tile.className = 'app-tile-item win8-anim';
+                        tile.style.animationDelay = (idx * 0.04) + 's';
+                        tile.innerHTML =
+                            '<div class="tile-img"><img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="140" height="140" fill="%23ddd"/%3E" /></div><div class="tile-name">Loading...</div><div class="tile-price">' +
+                            t('free') + '</div><div class="tile-stars">☆☆☆☆☆</div><div class="tile-category"></div>';
+                        grid.appendChild(tile);
+                        getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                            if (app) {
+                                var name = app.displayname || app.name || appName;
+                                tile.querySelector('.tile-name').textContent = name;
+                                tile.querySelector('.tile-price').textContent = t('free');
+                                tile.querySelector('.tile-stars').textContent = starsHtml(parseInt(app
+                                .mainStars) || 0);
+                                tile.querySelector('.tile-category').textContent = app.category || '';
+                                var img = tile.querySelector('.tile-img img');
+                                if (app.imgUrl) img.src = app.imgUrl;
+                                tile.onclick = function() { openAppPage(name, app); };
+                            }
+                        });
+                    });
+                });
+            }
+
+
+            // ---- CHARTS ----
+            function renderCharts(data) {
+                var grid = document.getElementById('chartsGrid');
+                grid.innerHTML = '';
+                document.getElementById('chartsTitle').textContent = t('topCharts');
+                var groups = data.rework_core_system && data.rework_core_system.content_registry &&
+                    data.rework_core_system.content_registry.deployment_groups;
+                if (!groups) return;
+                var all = [];
+                for (var key in groups) {
+                    if (groups[key].payload) {
+                        groups[key].payload.forEach(function(item) {
+                            all.push(item);
+                        });
+                    }
+                }
+                // Shuffle and take top 20
+                var shuffled = all.slice().sort(function() { return Math.random() - 0.5; });
+                var toShow = shuffled.slice(0, 20);
+                document.getElementById('chartsSubCount').textContent = toShow.length + ' apps';
+                toShow.forEach(function(item, idx) {
+                    var appName = item.label || item;
+                    var tile = document.createElement('div');
+                    tile.className = 'app-tile-item win8-anim';
+                    tile.style.animationDelay = (idx * 0.03) + 's';
+                    tile.innerHTML =
+                        '<div class="tile-img"><img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="140" height="140" fill="%23ddd"/%3E" /></div><div class="tile-name">Loading...</div><div class="tile-price">' +
+                        t('free') + '</div><div class="tile-stars">☆☆☆☆☆</div><div class="tile-category"></div>';
+                    grid.appendChild(tile);
+                    getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                        if (app) {
+                            var name = app.displayname || app.name || appName;
+                            tile.querySelector('.tile-name').textContent = name;
+                            tile.querySelector('.tile-price').textContent = t('free');
+                            tile.querySelector('.tile-stars').textContent = starsHtml(parseInt(app.mainStars) ||
+                            0);
+                            tile.querySelector('.tile-category').textContent = app.category || '';
+                            var img = tile.querySelector('.tile-img img');
+                            if (app.imgUrl) img.src = app.imgUrl;
+                            tile.onclick = function() { openAppPage(name, app); };
+                        }
+                    });
+                });
+            }
+
+
+            // ---- ALL APPS ----
+            function renderAllApps(data) {
+                var grid = document.getElementById('allAppsGrid');
+                grid.innerHTML = '';
+                document.getElementById('allAppsTitle').textContent = t('allApps');
+
+                if (!data || !data.rework_core_system || !data.rework_core_system.content_registry ||
+                    !data.rework_core_system.content_registry.deployment_groups) {
+                    grid.innerHTML = '<div style="padding:20px;color:#999;">' + t('noApps') + '</div>';
+                    return;
+                }
+
+                var groups = data.rework_core_system.content_registry.deployment_groups;
+                var allApps = [];
+
+                // Collect all app labels from all groups
+                for (var key in groups) {
+                    var group = groups[key];
+                    if (group.payload && Array.isArray(group.payload)) {
+                        group.payload.forEach(function(item) {
+                            var label = item.label || item;
+                            if (label && !allApps.includes(label)) {
+                                allApps.push(label);
+                            }
+                        });
+                    }
+                }
+
+                document.getElementById('allAppsSubCount').textContent = allApps.length + ' apps';
+
+                if (allApps.length === 0) {
+                    grid.innerHTML = '<div style="padding:20px;color:#999;">' + t('noApps') + '</div>';
+                    return;
+                }
+
+                allApps.forEach(function(appName, idx) {
+                    var tile = document.createElement('div');
+                    tile.className = 'app-tile-item win8-anim';
+                    tile.style.animationDelay = (idx * 0.02) + 's';
+                    tile.innerHTML =
+                        '<div class="tile-img"><img src="data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="140" height="140" fill="%23ddd"/%3E" /></div><div class="tile-name">Loading...</div><div class="tile-price">' +
+                        t('free') + '</div><div class="tile-stars">☆☆☆☆☆</div><div class="tile-category"></div>';
+                    grid.appendChild(tile);
+
+                    getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                        if (app) {
+                            var name = app.displayname || app.name || appName;
+                            tile.querySelector('.tile-name').textContent = name;
+                            tile.querySelector('.tile-price').textContent = t('free');
+                            tile.querySelector('.tile-stars').textContent = starsHtml(parseInt(app.mainStars) ||
+                            0);
+                            tile.querySelector('.tile-category').textContent = app.category || '';
+                            var img = tile.querySelector('.tile-img img');
+                            if (app.imgUrl) img.src = app.imgUrl;
+                            tile.onclick = function() { openAppPage(name, app); };
+                        }
+                    });
+                });
+            }
+
+
+            // ---- APP DETAIL ----
+            var currentAppData = null;
+
+            function openAppPage(title, appData) {
+                currentAppData = appData || null;
+                navigateTo('app', { title: title });
+                document.getElementById('appDetailTitle').textContent = title || 'App';
+                if (appData) {
+                    renderAppDetail(appData);
+                } else {
+                    // Load from server
+                    getJson(MASTER_SERVER, function(data) {
+                        if (!data) return;
+                        var groups = data.rework_core_system && data.rework_core_system.content_registry &&
+                            data.rework_core_system.content_registry.deployment_groups;
+                        if (!groups) return;
+                        var found = null;
+                        for (var key in groups) {
+                            var payload = groups[key].payload;
+                            if (payload) {
+                                for (var i = 0; i < payload.length; i++) {
+                                    var appName = payload[i].label || payload[i];
+                                    if (appName === title) {
+                                        getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                                            if (app) renderAppDetail(app);
+                                        });
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function renderAppDetail(app) {
+                currentAppData = app;
+                var name = app.displayname || app.name || 'App';
+                document.getElementById('appDispName').textContent = name;
+                document.getElementById('appPrice').textContent = t('free');
+                var stars = parseInt(app.mainStars) || 0;
+                document.getElementById('appStars').textContent = starsHtml(stars);
+
+                // Description
+                var descKey = 'description_' + getLang();
+                var desc = app[descKey] || app.description || '';
+                document.getElementById('appDesc').textContent = desc;
+
+                // Meta
+                document.getElementById('appPublisher').textContent = app.publisher || 'Rework';
+                document.getElementById('appCategory').textContent = app.category || '';
+                document.getElementById('appSize').textContent = app.size || '—';
+                document.getElementById('appOS').textContent = app.os || 'Windows 8.1+';
+                document.getElementById('appArch').textContent = app.architecture || 'x86, x64, ARM';
+                document.getElementById('appAge').textContent = app.ageRating || 'Everyone';
+
+                // Ratings
+                var totalRatings = parseInt(app.ratingsCount) || 0;
+                var ratingVal = app.ratingNumber || (stars > 0 ? (stars + '.0') : '0.0');
+                document.getElementById('ratingBig').textContent = ratingVal;
+                document.getElementById('ratingStarsBig').textContent = starsHtml(stars);
+                document.getElementById('ratingCount').textContent = totalRatings + ' ' + t('ratings');
+
+                // Rating bars
+                var dist = app.ratingDistribution || {};
+                var bars = document.getElementById('ratingBars');
+                bars.innerHTML = '';
+                for (var i = 5; i >= 1; i--) {
+                    var count = dist[i.toString()] || 0;
+                    var pct = totalRatings > 0 ? (count / totalRatings * 100) : 0;
+                    var label = i + (i === 1 ? t('star') : t('stars'));
+                    var row = document.createElement('div');
+                    row.className = 'bar-row';
+                    row.innerHTML = '<span class="bar-label">' + label +
+                        '</span><div class="bar-bg"><div class="bar-fill" style="width:' + pct +
+                        '%;"></div></div><span class="bar-count">' + count + '</span>';
+                    bars.appendChild(row);
+                }
+
+                // See all reviews
+                document.getElementById('seeAllReviews').textContent = t('seeAllReviews');
+                document.getElementById('ratingsHeader').textContent = t('ratingsTitle');
+                document.getElementById('seeAllReviews').onclick = function() {
+                    showModal(t('ratingsTitle'), '<p style="color:#666;">' + t('reviewsPlaceholder') + '</p>', t('close'));
+                };
+
+                // Gallery
+                renderAppGallery(app);
+
+                // Download button
+                var btn = document.getElementById('appDownloadBtn');
+                var isDownloaded = isAppDownloaded(name);
+                btn.textContent = isDownloaded ? t('uninstall') : t('download');
+                btn.className = 'btn-download' + (isDownloaded ? ' downloaded' : '');
+                btn.onclick = function() { handleAppDownload(name, app); };
+
+                // Show progress
+                document.getElementById('appStatusArea').style.display = 'none';
+
+                // Legal text
+                document.getElementById('legalText').innerHTML = t('legalText');
+                // Meta labels
+                document.getElementById('metaPublisher').textContent = t('publishedBy') + ':';
+                document.getElementById('metaCategory').textContent = t('category') + ':';
+                document.getElementById('metaSize').textContent = t('approxSize') + ':';
+                document.getElementById('metaOS').textContent = t('os') + ':';
+                document.getElementById('metaArch').textContent = t('architecture') + ':';
+                document.getElementById('metaAge').textContent = t('contentRating') + ':';
+            }
+
+            function renderAppGallery(app) {
+                var thumbs = document.getElementById('appThumbs');
+                var mainMedia = document.getElementById('appMainMedia');
+                var metaUnder = document.getElementById('appMetaUnder');
+
+                thumbs.innerHTML = '';
+                var items = [];
+                for (var i = 1; i <= 3; i++) {
+                    var img = app['pageimg' + i];
+                    var vid = app['pagevid' + i];
+                    if (img) items.push({ type: 'image', src: img });
+                    if (vid) items.push({ type: 'video', src: vid });
+                }
+                if (items.length === 0) {
+                    items.push({ type: 'image', src: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" fill="%23ddd"/%3E' });
+                }
+
+                var mainImg = document.getElementById('appMainImg');
+                var mainVideo = document.getElementById('appMainVideo');
+                if (mainVideo) { mainVideo.remove();
+                    mainVideo = null; }
+
+                function showMedia(idx) {
+                    var item = items[idx];
+                    if (!item) return;
+                    var imgs = thumbs.querySelectorAll('img, .thumb-vid');
+                    imgs.forEach(function(el, i) { el.className = (i === idx) ? 'active-thumb' : ''; });
+                    if (item.type === 'video') {
+                        mainImg.style.display = 'none';
+                        var vid = document.createElement('video');
+                        vid.id = 'appMainVideo';
+                        vid.src = item.src;
+                        vid.controls = true;
+                        vid.style.width = '100%';
+                        vid.style.maxHeight = '460px';
+                        vid.style.objectFit = 'contain';
+                        vid.style.borderRadius = '6px';
+                        vid.style.background = '#000';
+                        var old = document.getElementById('appMainVideo');
+                        if (old) old.remove();
+                        mainMedia.appendChild(vid);
+                        vid.play();
+                    } else {
+                        var oldVid = document.getElementById('appMainVideo');
+                        if (oldVid) oldVid.remove();
+                        mainImg.style.display = 'block';
+                        mainImg.src = item.src;
+                    }
+                }
+
+                items.forEach(function(item, idx) {
+                    if (item.type === 'video') {
+                        var div = document.createElement('div');
+                        div.className = 'thumb-vid';
+                        div.style.width = '70px';
+                        div.style.height = '50px';
+                        div.style.background = '#222';
+                        div.style.borderRadius = '4px';
+                        div.style.display = 'flex';
+                        div.style.alignItems = 'center';
+                        div.style.justifyContent = 'center';
+                        div.style.cursor = 'pointer';
+                        div.style.border = '2px solid transparent';
+                        var badge = document.createElement('span');
+                        badge.className = 'play-badge';
+                        badge.textContent = '▶';
+                        badge.style.color = '#fff';
+                        badge.style.fontSize = '22px';
+                        badge.style.opacity = '0.8';
+                        div.appendChild(badge);
+                        div.onclick = function() { showMedia(idx); };
+                        thumbs.appendChild(div);
+                    } else {
+                        var img = document.createElement('img');
+                        img.src = item.src;
+                        img.style.width = '70px';
+                        img.style.height = '50px';
+                        img.style.objectFit = 'cover';
+                        img.style.borderRadius = '4px';
+                        img.style.cursor = 'pointer';
+                        img.style.border = '2px solid transparent';
+                        img.onclick = function() { showMedia(idx); };
+                        thumbs.appendChild(img);
+                    }
+                });
+
+                if (items.length > 0) showMedia(0);
+
+                // Meta under
+                metaUnder.innerHTML = '';
+                var cols = [
+                    ['Version', app.version || '1.0.0.0'],
+                    ['Updated', app.updated || '—'],
+                    ['Language', app.language || 'English']
+                ];
+                cols.forEach(function(pair) {
+                    var col = document.createElement('div');
+                    col.className = 'meta-col';
+                    col.innerHTML = '<div><strong>' + pair[0] + ':</strong> ' + pair[1] + '</div>';
+                    metaUnder.appendChild(col);
+                });
+            }
+
+
+            // ---- APP DOWNLOAD ----
+            function handleAppDownload(name, app) {
+                var btn = document.getElementById('appDownloadBtn');
+                var statusArea = document.getElementById('appStatusArea');
+                var statusText = document.getElementById('appStatusText');
+                var progress = document.getElementById('appProgress');
+
+                if (btn.textContent === t('uninstall')) {
+                    // Uninstall
+                    removeFromDownloadHistory(name);
+                    btn.textContent = t('download');
+                    btn.className = 'btn-download';
+                    showToast(name + ' ' + t('uninstalled'));
+                    return;
+                }
+
+                // Download
+                var uri = app.downloadUri || (app.deployment ? app.deployment.downloadUri : '');
+                if (!uri) {
+                    showToast('This app cannot be downloaded in browser mode.');
+                    return;
+                }
+
+                btn.style.display = 'none';
+                statusArea.style.display = 'block';
+                statusText.textContent = t('init');
+                progress.value = 0;
+
+                // Simulate download
+                var total = 100;
+                var current = 0;
+                var interval = setInterval(function() {
+                    current += 5 + Math.random() * 10;
+                    if (current > total) current = total;
+                    progress.value = current;
+                    statusText.textContent = Math.round(current) + '% ' + t('downloaded');
+                    if (current >= total) {
+                        clearInterval(interval);
+                        statusText.textContent = t('install');
+                        setTimeout(function() {
+                            addToDownloadHistory(name, app.imgUrl || '', uri, app.version || '');
+                            btn.style.display = 'block';
+                            btn.textContent = t('uninstall');
+                            btn.className = 'btn-download downloaded';
+                            statusArea.style.display = 'none';
+                            showToast(name + t('toastMsg'));
+                            // Also open the download in a new tab if it's a direct link
+                            if (uri && uri.startsWith('http')) {
+                                window.open(uri, '_blank');
+                            }
+                        }, 400);
+                    }
+                }, 200);
+            }
+
+
+            // ---- THEMES PAGE ----
+            var editingThemeIndex = -1;
+
+            function renderThemesPage() {
+                var list = document.getElementById('themeList');
+                list.innerHTML = '';
+                var themes = getThemes();
+                var active = getActiveTheme();
+
+                // Default theme
+                var def = document.createElement('div');
+                def.className = 'theme-card';
+                def.innerHTML = '<div class="theme-name">' + t('defaultTheme') +
+                    '</div><div style="font-size:12px;color:#999;">' + (active === null || active === 'default' ?
+                        '✓ active' : '') + '</div>';
+                def.onclick = function() { setActiveTheme('default');
+                    renderThemesPage(); };
+                list.appendChild(def);
+
+                // Official themes (from localStorage)
+                var official = getOfficialThemes();
+                official.forEach(function(ot) {
+                    var div = document.createElement('div');
+                    div.className = 'theme-card';
+                    var isActive = active && active.name === ot.name;
+                    div.innerHTML = '<div><div class="theme-name">' + ot.name +
+                        '</div><span class="theme-badge">' + t('official') + '</span></div>' +
+                        '<div style="display:flex;gap:6px;align-items:center;">' +
+                        (isActive ? '<span style="font-size:12px;color:#008a00;">✓ active</span>' : '') +
+                        '<button class="btn-del" onclick="event.stopPropagation();deleteOfficialTheme(\'' +
+                        escapeHtml(ot.name) + '\')">' + t('delete') + '</button></div>';
+                    div.onclick = function() { setActiveTheme(ot);
+                        renderThemesPage(); };
+                    list.appendChild(div);
+                });
+
+                // Custom themes
+                themes.forEach(function(theme, idx) {
+                    var div = document.createElement('div');
+                    div.className = 'theme-card';
+                    var isActive = active && active.name === theme.name;
+                    div.innerHTML = '<div class="theme-name">' + theme.name +
+                        (isActive ? ' <span style="font-size:12px;color:#008a00;">✓ active</span>' : '') +
+                        '</div><div class="theme-actions">' +
+                        '<button onclick="event.stopPropagation();exportTheme(' + idx +
+                        ')">' + t('export') + '</button>' +
+                        '<button onclick="event.stopPropagation();editTheme(' + idx +
+                        ')">' + t('edit') + '</button>' +
+                        '<button class="btn-del" onclick="event.stopPropagation();deleteTheme(' + idx +
+                        ')">' + t('delete') + '</button></div>';
+                    div.onclick = function() { setActiveTheme(theme);
+                        renderThemesPage(); };
+                    list.appendChild(div);
+                });
+
+                document.getElementById('themeSubCount').textContent = (themes.length + official.length + 1) + ' ' + t(
+                'themes');
+
+                // Update creator labels
+                document.getElementById('creatorTitle').textContent = t('themeCreator');
+                document.getElementById('labelThemeName').textContent = t('themeName');
+                document.getElementById('labelThemeImg').textContent = t('themeImg');
+                document.getElementById('labelThemeBg').textContent = t('themeBg');
+                document.getElementById('labelThemeText').textContent = t('themeText');
+                document.getElementById('labelThemeTopbar').textContent = t('themeTopbar');
+                document.getElementById('labelThemeTopbarText').textContent = t('themeTopbarText');
+                document.getElementById('labelThemeSearchBar').textContent = t('themeSearchBar');
+                document.getElementById('labelThemeSearchIcon').textContent = t('themeSearchIcon');
+                document.getElementById('labelThemeFont').textContent = t('themeFont');
+                document.getElementById('labelHideTopbar').textContent = t('hideTopbar');
+                document.getElementById('saveThemeBtn').textContent = t('saveApply');
+                document.getElementById('cancelCreator').textContent = t('cancelBtn');
+                document.getElementById('btnCreateTheme').textContent = t('createTheme');
+                document.getElementById('btnImportTheme').textContent = t('importTheme');
+                document.getElementById('btnShopThemes').textContent = t('shop');
+                document.getElementById('shopPanelTitle').textContent = t('shopTitle');
+                document.getElementById('closeShopBtn').textContent = t('closeShopBtn');
+            }
+
+            function getOfficialThemes() {
+                try {
+                    var raw = localStorage.getItem('ws_official_themes');
+                    return raw ? JSON.parse(raw) : [];
+                } catch (e) { return []; }
+            }
+
+            function saveOfficialThemes(list) {
+                localStorage.setItem('ws_official_themes', JSON.stringify(list));
+            }
+
+            window.deleteOfficialTheme = function(name) {
+                var list = getOfficialThemes();
+                list = list.filter(function(t) { return t.name !== name; });
+                saveOfficialThemes(list);
+                var active = getActiveTheme();
+                if (active && active.name === name) setActiveTheme('default');
+                renderThemesPage();
+            };
+
+            window.exportTheme = function(idx) {
+                var themes = getThemes();
+                var t = themes[idx];
+                if (!t) return;
+                var blob = new Blob([JSON.stringify(t)], { type: 'application/json' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = t.name + '.RwStoreTheme';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            window.editTheme = function(idx) {
+                var themes = getThemes();
+                var t = themes[idx];
+                if (!t) return;
+                editingThemeIndex = idx;
+                document.getElementById('themeName').value = t.name || '';
+                document.getElementById('themeImg').value = t.img || '';
+                document.getElementById('themeBg').value = t.bg || '#f2f2f2';
+                document.getElementById('previewBg').style.backgroundColor = t.bg || '#f2f2f2';
+                document.getElementById('themeText').value = t.text || '#000000';
+                document.getElementById('previewText').style.backgroundColor = t.text || '#000000';
+                document.getElementById('themeTopbar').value = t.topbar || '#008a00';
+                document.getElementById('previewTopbar').style.backgroundColor = t.topbar || '#008a00';
+                document.getElementById('themeTopbarText').value = t.topbarText || '#ffffff';
+                document.getElementById('previewTopbarText').style.backgroundColor = t.topbarText || '#ffffff';
+                document.getElementById('themeSearchBar').value = t.searchBar || '#ffffff';
+                document.getElementById('previewSearchBar').style.backgroundColor = t.searchBar || '#ffffff';
+                document.getElementById('themeSearchIcon').value = t.searchIcon || '#008a00';
+                document.getElementById('previewSearchIcon').style.backgroundColor = t.searchIcon || '#008a00';
+                document.getElementById('themeFont').value = t.font || "'Segoe UI', sans-serif";
+                document.getElementById('themeHideTopbar').checked = t.hideTopbar || false;
+                document.getElementById('creatorTitle').textContent = t('editTheme');
+                document.getElementById('creatorPanel').style.display = 'block';
+                renderThemesPage();
+            };
+
+            window.deleteTheme = function(idx) {
+                var themes = getThemes();
+                var t = themes[idx];
+                if (!t) return;
+                var active = getActiveTheme();
+                if (active && active.name === t.name) setActiveTheme('default');
+                themes.splice(idx, 1);
+                saveThemes(themes);
+                renderThemesPage();
+            };
+
+            function saveThemeFromUI() {
+                var name = document.getElementById('themeName').value.trim();
+                if (!name) { showToast('Please enter a theme name'); return; }
+                var theme = {
+                    name: name,
+                    img: document.getElementById('themeImg').value.trim(),
+                    bg: document.getElementById('themeBg').value,
+                    text: document.getElementById('themeText').value,
+                    topbar: document.getElementById('themeTopbar').value,
+                    topbarText: document.getElementById('themeTopbarText').value,
+                    searchBar: document.getElementById('themeSearchBar').value,
+                    searchIcon: document.getElementById('themeSearchIcon').value,
+                    font: document.getElementById('themeFont').value,
+                    hideTopbar: document.getElementById('themeHideTopbar').checked
+                };
+                var themes = getThemes();
+                if (editingThemeIndex >= 0 && editingThemeIndex < themes.length) {
+                    themes[editingThemeIndex] = theme;
+                } else {
+                    themes.push(theme);
+                }
+                saveThemes(themes);
+                setActiveTheme(theme);
+                document.getElementById('creatorPanel').style.display = 'none';
+                editingThemeIndex = -1;
+                renderThemesPage();
+                showToast('Theme saved!');
+            }
+
+            function loadShopThemes() {
+                var list = document.getElementById('shopList');
+                list.innerHTML = '<div style="padding:10px;color:#999;">' + t('loading') + '...</div>';
+                getJson('https://w-8-1-projects.github.io/Rework-Store-Revived/data/themes.json', function(data) {
+                    if (!data) { list.innerHTML =
+                            '<div style="padding:10px;color:#999;">' + t('failedLoad') + '</div>'; return; }
+                    var payload = data.rework_core_system && data.rework_core_system.content_theme &&
+                        data.rework_core_system.content_theme.deployment_groups &&
+                        data.rework_core_system.content_theme.deployment_groups.curated_selection &&
+                        data.rework_core_system.content_theme.deployment_groups.curated_selection.payload;
+                    if (!payload || payload.length === 0) {
+                        list.innerHTML = '<div style="padding:10px;color:#999;">' + t('noShopThemes') + '</div>';
+                        return;
+                    }
+                    list.innerHTML = '';
+                    var official = getOfficialThemes();
+                    payload.forEach(function(item) {
+                        var div = document.createElement('div');
+                        div.className = 'shop-item';
+                        var installed = official.some(function(o) { return o.name === item.displayname; });
+                        div.innerHTML = '<span class="shop-name">' + item.displayname + '</span>' +
+                            (installed ?
+                                '<button disabled>' + t('installed') + '</button>' :
+                                '<button onclick="downloadShopTheme(\'' + escapeHtml(item.displayname) +
+                                '\',\'' + escapeHtml(item.downloadUri || '') + '\')">' + t('download') +
+                                '</button>');
+                        list.appendChild(div);
+                    });
+                });
+            }
+
+            window.downloadShopTheme = function(name, uri) {
+                if (!uri) { showToast('Invalid download URL'); return; }
+                getXhr(uri, function(txt) {
+                    if (!txt) { showToast('Failed to download theme'); return; }
+                    try {
+                        var theme = JSON.parse(txt);
+                        if (!theme.name) theme.name = name;
+                        var official = getOfficialThemes();
+                        official.push(theme);
+                        saveOfficialThemes(official);
+                        renderThemesPage();
+                        showToast('Theme installed!');
+                    } catch (e) {
+                        showToast('Invalid theme file');
+                    }
+                });
+            };
+
+
+            // ---- ACCOUNT PAGE ----
+            function renderAccountPage() {
+                // Update static labels
+                document.getElementById('accountTitle').textContent = t('account');
+                document.getElementById('paymentTitle').textContent = t('paymentInfo');
+                document.getElementById('securityTitle').textContent = t('securityTitle');
+                document.getElementById('securityDesc').textContent = t('alwaysAsk');
+                document.getElementById('pcsTitle').textContent = t('yourPCs');
+                document.getElementById('pcsDesc').textContent = t('pcsDesc');
+                document.getElementById('dlHistoryTitle').textContent = t('dlHistory');
+                document.getElementById('dlHistoryDesc').textContent = t('dlHistoryInfo');
+                document.getElementById('sidebarTitle').textContent = t('sidebarTitle');
+                document.getElementById('sidebarDesc').textContent = t('sidebarDesc');
+                document.getElementById('pcLabel').textContent = t('thisPC');
+                document.getElementById('accThemeBtn').textContent = t('changeTheme');
+                document.getElementById('accLangBtn').textContent = t('changeLang');
+                document.getElementById('accAboutBtn').textContent = t('about');
+
+                // User name
+                getUserName().then(function(name) {
+                    document.getElementById('accUserName').textContent = name || 'User';
+                });
+                // PC name
+                document.getElementById('pcNameDisplay').textContent = getDeviceName();
+
+                // Security toggle
+                var isOn = localStorage.getItem('ws_security_password') !== 'false';
+                var toggle = document.getElementById('securityToggle');
+                var label = document.getElementById('toggleLabel');
+                toggle.className = 'toggle-switch ' + (isOn ? 'is-on' : 'is-off');
+                label.textContent = isOn ? t('yes') : t('no');
+                toggle.onclick = function() {
+                    var newVal = !(localStorage.getItem('ws_security_password') !== 'false');
+                    localStorage.setItem('ws_security_password', newVal ? 'true' : 'false');
+                    renderAccountPage();
+                };
+
+                // Payment
+                var payment = localStorage.getItem('ws_local_payment');
+                var status = document.getElementById('paymentStatus');
+                var addBtn = document.getElementById('addPaymentBtn');
+                var removeBtn = document.getElementById('removePaymentBtn');
+                if (payment) {
+                    try { var p = JSON.parse(payment);
+                        status.textContent = ' **** ' + (p.lastFour || '****'); } catch (e) { status.textContent = t(
+                            'paymentStatus'); }
+                    status.style.color = '#008a00';
+                    addBtn.textContent = t('editPayment');
+                    removeBtn.style.display = 'inline-block';
+                } else {
+                    status.textContent = t('paymentStatus');
+                    status.style.color = '#d83b01';
+                    addBtn.textContent = t('addPayment');
+                    removeBtn.style.display = 'none';
+                }
+
+                // Download history
+                renderDownloadHistory();
+
+                // Sidebar
+                var sidebarDisabled = localStorage.getItem('ws_sidebar_disabled') !== '0';
+                var sidebarBtn = document.getElementById('sidebarToggleBtn');
+                sidebarBtn.textContent = sidebarDisabled ? t('sidebarEnable') : t('sidebarDisable');
+                sidebarBtn.onclick = function() {
+                    var current = localStorage.getItem('ws_sidebar_disabled') !== '0';
+                    localStorage.setItem('ws_sidebar_disabled', current ? '0' : '1');
+                    renderAccountPage();
+                };
+
+                // Account buttons
+                document.getElementById('accThemeBtn').onclick = function() { navigateTo('themes');
+                    renderThemesPage(); };
+                document.getElementById('accLangBtn').onclick = function() {
+                    showModal(t('chooseLang'), '<div id="langList" style="display:flex;flex-direction:column;gap:6px;"></div>',
+                        t('close'));
+                    var langs = ['en', 'de', 'fr', 'es', 'tr', 'ru', 'pl', 'ro'];
+                    var names = ['English', 'Deutsch', 'Français', 'Español', 'Türkçe', 'Русский', 'Polski', 'Română'];
+                    var container = document.getElementById('langList');
+                    langs.forEach(function(code, idx) {
+                        var div = document.createElement('div');
+                        div.style.cssText =
+                            'padding:8px 12px;cursor:pointer;border:1px solid transparent;border-radius:4px;' +
+                            (code === LANG ? 'border-color:#008a00;background:#e6f3e6;' : '');
+                        div.textContent = names[idx];
+                        div.onclick = function() {
+                            LANG = code;
+                            localStorage.setItem('ws_language', code);
+                            // Re-render current page with new language
+                            applyLanguageToUI();
+                            renderAccountPage();
+                            document.getElementById('modalOverlay').classList.remove('active');
+                            showToast('Language changed to ' + names[idx]);
+                        };
+                        container.appendChild(div);
+                    });
+                };
+                document.getElementById('accAboutBtn').onclick = function() {
+                    showModal(t('about'), t('aboutContent'), t('close'));
+                };
+
+                // Add payment
+                addBtn.onclick = function() {
+                    showModal(t('paymentInfo'),
+                        '<input type="text" id="cardInput" placeholder="' + t('cardNumber') +
+                        '" style="width:100%;padding:8px;border:1px solid #999;border-radius:3px;font-family:inherit;" />',
+                        t('submit'), function() {
+                            var val = document.getElementById('cardInput').value;
+                            if (val.length > 4) {
+                                var last = val.slice(-4);
+                                localStorage.setItem('ws_local_payment', JSON.stringify({ lastFour: last }));
+                                renderAccountPage();
+                                showToast('Payment method added');
+                            } else {
+                                showToast('Please enter a valid card number');
+                            }
+                        });
+                };
+                removeBtn.onclick = function() {
+                    localStorage.removeItem('ws_local_payment');
+                    renderAccountPage();
+                    showToast('Payment method removed');
+                };
+            }
+
+            function renderDownloadHistory() {
+                var list = document.getElementById('dlHistoryList');
+                var h = getDownloadHistory();
+                if (h.length === 0) {
+                    list.innerHTML = '<div class="dl-empty">' + t('dlEmpty') + '</div>';
+                    return;
+                }
+                list.innerHTML = '';
+                h.forEach(function(entry, idx) {
+                    var div = document.createElement('div');
+                    div.className = 'dl-item win8-anim';
+                    div.style.animationDelay = (idx * 0.04) + 's';
+                    var imgSrc = entry.img || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="44" height="44" fill="%23ddd"/%3E';
+                    div.innerHTML =
+                        '<img class="dl-img" src="' + imgSrc +
+                        '" alt="icon" />' +
+                        '<div class="dl-info"><div class="dl-name">' + escapeHtml(entry.name) +
+                        (entry.hasUpdate ? ' <span style="background:#008a00;color:#fff;font-size:10px;padding:1px 6px;border-radius:3px;margin-left:4px;">' +
+                            t('dlUpdateAvailable') + '</span>' : '') +
+                        '</div><div class="dl-date">' + t('dlInstalledOn') + ': ' + formatDate(entry
+                        .downloadedAt || Date.now()) + '</div></div>' +
+                        '<div class="dl-actions">' +
+                        (entry.hasUpdate ?
+                            '<button class="dl-update" onclick="event.stopPropagation();updateApp(\'' +
+                            escapeHtml(entry.name) + '\')">' + t('update') + '</button>' : '') +
+                        '<button class="dl-uninstall" onclick="event.stopPropagation();uninstallApp(\'' +
+                        escapeHtml(entry.name) + '\')">' + t('uninstall') + '</button>' +
+                        '</div>';
+                    div.onclick = function() {
+                        openAppPage(entry.name);
+                    };
+                    list.appendChild(div);
+                });
+            }
+
+            window.uninstallApp = function(name) {
+                removeFromDownloadHistory(name);
+                renderDownloadHistory();
+                showToast(name + ' uninstalled');
+                // Update download button on app page if open
+                if (currentAppData && (currentAppData.displayname || currentAppData.name) === name) {
+                    var btn = document.getElementById('appDownloadBtn');
+                    if (btn) { btn.textContent = t('download');
+                        btn.className = 'btn-download'; }
+                }
+            };
+
+            window.updateApp = function(name) {
+                showToast('Checking for updates for ' + name + '...');
+                // Simulate update check
+                var h = getDownloadHistory();
+                for (var i = 0; i < h.length; i++) {
+                    if (h[i].name === name) {
+                        h[i].hasUpdate = false;
+                        h[i].version = (parseFloat(h[i].version || '1.0') + 0.1).toFixed(1);
+                        saveDownloadHistory(h);
+                        renderDownloadHistory();
+                        showToast(name + ' updated to version ' + h[i].version);
+                        break;
+                    }
+                }
+            };
+
+            // ---- LANGUAGE UPDATE FUNCTION ----
+            function applyLanguageToUI() {
+                // Update top bar
+                document.getElementById('navHome').textContent = t('home');
+                document.getElementById('navCategories').textContent = t('categories');
+                document.getElementById('navCharts').textContent = t('charts');
+                document.getElementById('navAllApps').textContent = t('allApps');
+                document.getElementById('navThemes').textContent = t('themes');
+                document.getElementById('navAccount').textContent = t('accountLabel');
+                document.getElementById('searchBar').placeholder = t('search');
+
+                // Re-render current page based on currentPage
+                switch (currentPage) {
+                    case 'home':
+                        loadHome();
+                        break;
+                    case 'categories':
+                        loadCategories();
+                        break;
+                    case 'charts':
+                        loadCharts();
+                        break;
+                    case 'allapps':
+                        loadAllApps();
+                        break;
+                    case 'themes':
+                        renderThemesPage();
+                        break;
+                    case 'account':
+                        renderAccountPage();
+                        break;
+                    case 'app':
+                        if (currentAppData) {
+                            renderAppDetail(currentAppData);
+                        } else {
+                            // Try to reload app data
+                            var title = document.getElementById('appDetailTitle').textContent;
+                            if (title && title !== 'App') {
+                                openAppPage(title);
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+
+            // ---- INIT ----
+            function init() {
+                // Apply saved theme
+                var saved = getActiveTheme();
+                if (saved) applyThemeToUI(saved);
+
+                // Top bar navigation
+                document.querySelectorAll('#topBarContainer .nav-link[data-page]').forEach(function(el) {
+                    el.onclick = function(e) {
+                        e.preventDefault();
+                        var page = this.dataset.page;
+                        if (page === 'home') { navigateTo('home');
+                            loadHome(); } else if (page === 'categories') { navigateTo('categories');
+                            loadCategories(); } else if (page === 'charts') { navigateTo('charts');
+                            loadCharts(); } else if (page === 'allapps') { navigateTo('allapps');
+                            loadAllApps(); } else if (page === 'themes') { navigateTo('themes');
+                            renderThemesPage(); } else if (page === 'account') { navigateTo('account');
+                            renderAccountPage(); }
+                    };
+                });
+
+                // Logo home
+                document.getElementById('logoHome').onclick = function() { navigateTo('home');
+                    loadHome(); };
+
+                // Search
+                var searchBar = document.getElementById('searchBar');
+                searchBar.onkeydown = function(e) {
+                    if (e.key === 'Enter') {
+                        var q = this.value.trim();
+                        if (q) {
+                            navigateTo('allapps');
+                            setTimeout(function() { searchAllApps(q); }, 100);
+                        }
+                    }
+                };
+
+                // Back buttons
+                document.querySelectorAll('[data-back]').forEach(function(el) {
+                    el.onclick = function() {
+                        var hash = location.hash.replace('#', '');
+                        if (hash === 'app') {
+                            navigateTo('home');
+                            loadHome();
+                        } else {
+                            navigateTo('home');
+                            loadHome();
+                        }
+                    };
+                });
+
+                // Theme page buttons
+                document.getElementById('btnCreateTheme').onclick = function() {
+                    editingThemeIndex = -1;
+                    document.getElementById('creatorTitle').textContent = t('themeCreator');
+                    document.getElementById('themeName').value = '';
+                    document.getElementById('themeImg').value = '';
+                    document.getElementById('themeBg').value = '#f2f2f2';
+                    document.getElementById('previewBg').style.backgroundColor = '#f2f2f2';
+                    document.getElementById('themeText').value = '#000000';
+                    document.getElementById('previewText').style.backgroundColor = '#000000';
+                    document.getElementById('themeTopbar').value = '#008a00';
+                    document.getElementById('previewTopbar').style.backgroundColor = '#008a00';
+                    document.getElementById('themeTopbarText').value = '#ffffff';
+                    document.getElementById('previewTopbarText').style.backgroundColor = '#ffffff';
+                    document.getElementById('themeSearchBar').value = '#ffffff';
+                    document.getElementById('previewSearchBar').style.backgroundColor = '#ffffff';
+                    document.getElementById('themeSearchIcon').value = '#008a00';
+                    document.getElementById('previewSearchIcon').style.backgroundColor = '#008a00';
+                    document.getElementById('themeFont').value = "'Segoe UI', sans-serif";
+                    document.getElementById('themeHideTopbar').checked = false;
+                    document.getElementById('creatorPanel').style.display = 'block';
+                };
+                document.getElementById('cancelCreator').onclick = function() {
+                    document.getElementById('creatorPanel').style.display = 'none';
+                    editingThemeIndex = -1;
+                };
+                document.getElementById('saveThemeBtn').onclick = saveThemeFromUI;
+
+                document.getElementById('btnImportTheme').onclick = function() {
+                    var input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.RwStoreTheme,.json';
+                    input.onchange = function(e) {
+                        var file = e.target.files[0];
+                        if (!file) return;
+                        var reader = new FileReader();
+                        reader.onload = function(ev) {
+                            try {
+                                var theme = JSON.parse(ev.target.result);
+                                if (!theme.name) theme.name = file.name.replace(/\.[^.]+$/, '');
+                                var themes = getThemes();
+                                themes.push(theme);
+                                saveThemes(themes);
+                                renderThemesPage();
+                                showToast('Theme imported!');
+                            } catch (err) {
+                                showToast('Invalid theme file');
+                            }
+                        };
+                        reader.readAsText(file);
+                    };
+                    input.click();
+                };
+
+                document.getElementById('btnShopThemes').onclick = function() {
+                    var panel = document.getElementById('shopPanel');
+                    if (panel.style.display === 'block') {
+                        panel.style.display = 'none';
+                    } else {
+                        panel.style.display = 'block';
+                        loadShopThemes();
+                    }
+                };
+                document.getElementById('closeShopBtn').onclick = function() {
+                    document.getElementById('shopPanel').style.display = 'none';
+                };
+
+                // Color picker for theme creator
+                document.querySelectorAll('.color-preview').forEach(function(el) {
+                    el.onclick = function() {
+                        var input = this.parentElement.querySelector('input[type="hidden"]');
+                        if (!input) return;
+                        var current = input.value;
+                        var picker = document.createElement('input');
+                        picker.type = 'color';
+                        picker.value = current;
+                        picker.onchange = function() {
+                            input.value = this.value;
+                            el.style.backgroundColor = this.value;
+                        };
+                        picker.click();
+                    };
+                });
+
+                // Load home by default
+                loadHome();
+
+                // Handle hash on load
+                var hash = location.hash.replace('#', '');
+                if (hash === 'categories') { navigateTo('categories');
+                    loadCategories(); } else if (hash === 'charts') { navigateTo('charts');
+                    loadCharts(); } else if (hash === 'allapps') { navigateTo('allapps');
+                    loadAllApps(); } else if (hash === 'themes') { navigateTo('themes');
+                    renderThemesPage(); } else if (hash === 'account') { navigateTo('account');
+                    renderAccountPage(); } else if (hash.startsWith('app=')) {
+                    var appName = decodeURIComponent(hash.replace('app=', ''));
+                    navigateTo('app', { title: appName });
+                    openAppPage(appName);
+                } else {
+                    navigateTo('home');
+                    loadHome();
+                }
+
+                // Request notification permission
+                if (window.Notification && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+
+                // Apply initial language to UI
+                applyLanguageToUI();
+
+                console.log('[App] Initialized');
+            }
+
+            // ---- LOADERS ----
+            function loadHome() {
+                getJson(MASTER_SERVER, function(data) {
+                    if (data) renderHome(data);
+                    else {
+                        document.getElementById('homeLayout').innerHTML =
+                            '<div style="padding:40px;color:#999;text-align:center;">Failed to load store data. Please check your connection.</div>';
+                    }
+                });
+            }
+
+            function loadCategories() {
+                getJson(MASTER_SERVER, function(data) {
+                    if (data) renderCategories(data);
+                });
+            }
+
+            function loadCharts() {
+                getJson(MASTER_SERVER, function(data) {
+                    if (data) renderCharts(data);
+                });
+            }
+
+            function loadAllApps() {
+                getJson(ALL_APPS_URL, function(data) {
+                    if (data) renderAllApps(data);
+                    else {
+                        document.getElementById('allAppsGrid').innerHTML =
+                            '<div style="padding:20px;color:#999;">Failed to load apps. Please check your connection.</div>';
+                    }
+                });
+            }
+
+            function searchAllApps(query) {
+                document.getElementById('allAppsTitle').textContent = 'Results for ' + query;
+                var grid = document.getElementById('allAppsGrid');
+                grid.innerHTML = '<div style="padding:20px;">Searching...</div>';
+
+                getJson(ALL_APPS_URL, function(data) {
+                    if (!data) {
+                        grid.innerHTML = '<div style="padding:20px;color:#999;">Failed to search</div>';
+                        return;
+                    }
+
+                    var groups = data.rework_core_system && data.rework_core_system.content_registry &&
+                        data.rework_core_system.content_registry.deployment_groups;
+                    if (!groups) {
+                        grid.innerHTML = '<div style="padding:20px;color:#999;">No apps found</div>';
+                        return;
+                    }
+
+                    var results = [];
+                    for (var key in groups) {
+                        var group = groups[key];
+                        if (group.payload && Array.isArray(group.payload)) {
+                            group.payload.forEach(function(item) {
+                                var label = item.label || item;
+                                if (label && !results.includes(label)) {
+                                    results.push(label);
+                                }
+                            });
+                        }
+                    }
+
+                    if (results.length === 0) {
+                        grid.innerHTML = '<div style="padding:20px;color:#999;">No apps found</div>';
+                        return;
+                    }
+
+                    var filtered = [];
+                    var pending = results.length;
+                    var checked = 0;
+
+                    results.forEach(function(appName, idx) {
+                        getJson(APPS_ENDPOINT + appName + '.json', function(app) {
+                            checked++;
+                            if (app) {
+                                var name = (app.displayname || app.name || appName).toLowerCase();
+                                if (name.indexOf(query.toLowerCase()) !== -1) {
+                                    filtered.push({ name: app.displayname || app.name || appName,
+                                        data: app });
+                                }
+                            }
+                            if (checked >= pending) {
+                                // All done
+                                if (filtered.length === 0) {
+                                    grid.innerHTML =
+                                        '<div style="padding:20px;color:#999;">No results found</div>';
+                                    return;
+                                }
+                                document.getElementById('allAppsSubCount').textContent = filtered.length +
+                                    ' apps';
+                                grid.innerHTML = '';
+                                filtered.forEach(function(item, i) {
+                                    var tile = document.createElement('div');
+                                    tile.className = 'app-tile-item win8-anim';
+                                    tile.style.animationDelay = (i * 0.04) + 's';
+                                    var app = item.data;
+                                    var name = item.name;
+                                    tile.innerHTML =
+                                        '<div class="tile-img"><img src="' + (app.imgUrl ||
+                                            'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="140" height="140" fill="%23ddd"/%3E'
+                                            ) + '" /></div>' +
+                                        '<div class="tile-name">' + name + '</div>' +
+                                        '<div class="tile-price">' + t('free') + '</div>' +
+                                        '<div class="tile-stars">' + starsHtml(parseInt(app.mainStars) ||
+                                            0) + '</div>' +
+                                        '<div class="tile-category">' + (app.category || '') + '</div>';
+                                    tile.onclick = function() { openAppPage(name, app); };
+                                    grid.appendChild(tile);
+                                });
+                            }
+                        });
+                    });
+                });
+            }
+
+            // ---- START ----
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+        })();
+    </script>
+
+</body>
+</html>
